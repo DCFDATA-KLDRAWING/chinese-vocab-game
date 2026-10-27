@@ -1,0 +1,1031 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>五年級國語圈詞大冒險 - iPad 專用闖關神器</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome 圖示 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: 圓潤易讀字型 -->
+    <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <!-- Confetti 慶祝特效 -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <style>
+        * {
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        body {
+            font-family: 'Zen Maru Gothic', 'Noto Sans TC', sans-serif;
+            touch-action: manipulation;
+        }
+        /* 3D 翻轉卡片效果 */
+        .perspective-1000 {
+            perspective: 1000px;
+        }
+        .transform-style-3d {
+            transform-style: preserve-3d;
+        }
+        .backface-hidden {
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+        }
+        .rotate-y-180 {
+            transform: rotateY(180deg);
+        }
+        /* 彈跳果凍按鈕動畫 */
+        .btn-bounce:active {
+            transform: scale(0.94);
+        }
+        /* 發光特效 */
+        .glow-card {
+            box-shadow: 0 10px 25px -5px rgba(59, 130, 246, 0.4), 0 8px 10px -6px rgba(59, 130, 246, 0.2);
+        }
+        /* 連線遊戲配對高亮 */
+        .match-selected {
+            ring: 4px solid #F59E0B;
+            transform: scale(1.03);
+            background-color: #FEF3C7 !important;
+        }
+        .match-correct {
+            animation: pulse-green 0.5s ease;
+            opacity: 0.2;
+            pointer-events: none;
+        }
+        @keyframes pulse-green {
+            0% { transform: scale(1); background-color: #10B981; }
+            50% { transform: scale(1.08); background-color: #34D399; }
+            100% { transform: scale(0.95); opacity: 0; }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-indigo-100 via-sky-50 to-emerald-100 min-h-screen text-slate-800 flex flex-col justify-between">
+
+    <!-- 頂端控制列 (iPad 優化) -->
+    <header class="bg-white/80 backdrop-blur-md sticky top-0 z-40 border-b border-sky-100 px-4 py-3 sm:px-6 shadow-sm">
+        <div class="max-w-5xl mx-auto flex items-center justify-between">
+            <div class="flex items-center space-x-3 cursor-pointer" onclick="switchMode('home')">
+                <div class="w-11 h-11 bg-gradient-to-tr from-amber-400 to-orange-500 rounded-2xl flex items-center justify-center text-white text-xl shadow-md">
+                    <i class="fa-solid fa-graduation-cap"></i>
+                </div>
+                <div>
+                    <h1 class="font-black text-xl sm:text-2xl tracking-wide bg-gradient-to-r from-blue-600 to-teal-600 bg-clip-text text-transparent">
+                        圈詞大冒險
+                    </h1>
+                    <p class="text-xs text-slate-500 font-bold">國小五上國語精選詞庫</p>
+                </div>
+            </div>
+
+            <!-- 星星積分與語音開關 -->
+            <div class="flex items-center space-x-3">
+                <div class="flex items-center bg-amber-50 border border-amber-200 px-3.5 py-1.5 rounded-full shadow-inner">
+                    <i class="fa-solid fa-star text-amber-500 text-lg mr-1.5 animate-bounce"></i>
+                    <span id="star-count" class="font-black text-amber-700 text-lg">0</span>
+                    <span class="text-xs text-amber-600 ml-1 font-bold">星</span>
+                </div>
+                <button onclick="toggleAudio()" id="audio-btn" class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-slate-200 text-base shadow-sm">
+                    <i class="fa-solid fa-volume-high"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- 主體內容區塊 -->
+    <main class="max-w-5xl mx-auto w-full p-4 sm:p-6 flex-1 flex flex-col items-center justify-center">
+
+        <!-- 1. 首頁/模式選擇選單 -->
+        <div id="view-home" class="w-full flex flex-col items-center">
+            <div class="text-center my-6">
+                <span class="inline-block bg-sky-200/80 text-sky-800 text-xs sm:text-sm font-bold px-3 py-1 rounded-full mb-2">
+                    🎒 專為小學五年級設計 · iPad 觸控沉浸學習
+                </span>
+                <h2 class="text-3xl sm:text-4xl font-black text-slate-800 tracking-tight">
+                    今天想挑戰哪一種冒險？
+                </h2>
+                <p class="text-slate-500 text-sm sm:text-base mt-2">搞懂詞義、生活會用、考試填空拿滿分！</p>
+            </div>
+
+            <!-- 模式按鈕卡片 -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-5 w-full max-w-4xl px-2">
+                <!-- 模式 1: 記憶翻翻卡 -->
+                <div onclick="startFlashcards()" class="group bg-white rounded-3xl p-6 border-2 border-indigo-100 hover:border-indigo-400 shadow-lg hover:shadow-xl transition-all cursor-pointer flex flex-col items-center text-center btn-bounce">
+                    <div class="w-16 h-16 rounded-2xl bg-indigo-500 text-white flex items-center justify-center text-3xl shadow-md mb-4 group-hover:rotate-6 transition-transform">
+                        <i class="fa-solid fa-layer-group"></i>
+                    </div>
+                    <h3 class="text-xl font-black text-slate-800">1. 3D 閃卡速記</h3>
+                    <p class="text-xs text-slate-500 mt-2 leading-relaxed">
+                        卡片正面看詞發音，背面翻開拆解意思與生活造句。點擊發音、即時熟記！
+                    </p>
+                    <span class="mt-4 inline-flex items-center text-xs font-bold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full">
+                        自由翻閱 · 零壓力 <i class="fa-solid fa-arrow-right ml-1"></i>
+                    </span>
+                </div>
+
+                <!-- 模式 2: 語境填空大闖關 -->
+                <div onclick="startQuiz()" class="group bg-white rounded-3xl p-6 border-2 border-emerald-100 hover:border-emerald-400 shadow-lg hover:shadow-xl transition-all cursor-pointer flex flex-col items-center text-center btn-bounce">
+                    <div class="w-16 h-16 rounded-2xl bg-emerald-500 text-white flex items-center justify-center text-3xl shadow-md mb-4 group-hover:scale-110 transition-transform">
+                        <i class="fa-solid fa-puzzle-piece"></i>
+                    </div>
+                    <h3 class="text-xl font-black text-slate-800">2. 造句挖空闖關</h3>
+                    <p class="text-xs text-slate-500 mt-2 leading-relaxed">
+                        最貼近學校考卷題型！看生活短文填入最恰當的圈詞，四選一快速挑戰。
+                    </p>
+                    <span class="mt-4 inline-flex items-center text-xs font-bold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full">
+                        實戰測驗 · 賺星星 <i class="fa-solid fa-arrow-right ml-1"></i>
+                    </span>
+                </div>
+
+                <!-- 模式 3: 詞義連線消消樂 -->
+                <div onclick="startMatchGame()" class="group bg-white rounded-3xl p-6 border-2 border-amber-100 hover:border-amber-400 shadow-lg hover:shadow-xl transition-all cursor-pointer flex flex-col items-center text-center btn-bounce">
+                    <div class="w-16 h-16 rounded-2xl bg-amber-500 text-white flex items-center justify-center text-3xl shadow-md mb-4 group-hover:-rotate-6 transition-transform">
+                        <i class="fa-solid fa-bolt"></i>
+                    </div>
+                    <h3 class="text-xl font-black text-slate-800">3. 詞義消消樂</h3>
+                    <p class="text-xs text-slate-500 mt-2 leading-relaxed">
+                        左邊是圈詞、右邊是白話意思，用手指點擊配對！考驗你的瞬間反應與理解力。
+                    </p>
+                    <span class="mt-4 inline-flex items-center text-xs font-bold text-amber-600 bg-amber-50 px-3 py-1 rounded-full">
+                        手指連線 · 消除快感 <i class="fa-solid fa-arrow-right ml-1"></i>
+                    </span>
+                </div>
+            </div>
+            <!-- 課本單元篩選器 (支援完整 6 課 192 詞) -->
+            <div class="mt-8 bg-white/90 backdrop-blur p-4 rounded-2xl shadow-sm border border-slate-200 w-full max-w-4xl flex flex-col sm:flex-row items-center justify-between gap-3">
+                <div class="flex flex-wrap items-center gap-1.5 justify-center">
+                    <span class="text-xs font-black text-slate-500 mr-1"><i class="fa-solid fa-book-open mr-1"></i>課次選擇：</span>
+                    <button onclick="filterLesson('all', this)" class="lesson-btn px-3 py-1.5 rounded-xl text-xs font-bold bg-indigo-600 text-white shadow-sm">全部 192 詞</button>
+                    <button onclick="filterLesson(1, this)" class="lesson-btn px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200">第 1 課</button>
+                    <button onclick="filterLesson(2, this)" class="lesson-btn px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200">第 2 課</button>
+                    <button onclick="filterLesson(3, this)" class="lesson-btn px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200">第 3 課</button>
+                    <button onclick="filterLesson(4, this)" class="lesson-btn px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200">第 4 課</button>
+                    <button onclick="filterLesson(5, this)" class="lesson-btn px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200">第 5 課</button>
+                    <button onclick="filterLesson(6, this)" class="lesson-btn px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200">第 6 課</button>
+                </div>
+                <!-- 快速搜尋圈詞 -->
+                <div class="relative w-full sm:w-48">
+                    <input type="text" id="vocab-search" oninput="searchVocab(this.value)" placeholder="🔍 快速搜尋圈詞..." class="w-full text-xs px-3 py-1.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-400">
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. 模式一：3D 閃卡速記視圖 -->
+        <div id="view-flashcard" class="w-full hidden flex-col items-center">
+            <div class="w-full max-w-lg flex items-center justify-between mb-4">
+                <button onclick="switchMode('home')" class="px-3.5 py-1.5 rounded-xl bg-white border border-slate-200 text-slate-600 text-sm font-bold shadow-sm btn-bounce">
+                    <i class="fa-solid fa-arrow-left mr-1"></i>返回選單
+                </button>
+                <div class="text-sm font-bold text-slate-500">
+                    第 <span id="card-index" class="text-indigo-600 font-black text-lg">1</span> / <span id="card-total">20</span> 詞
+                </div>
+                <button onclick="speakCurrentWord()" class="px-3 py-1.5 rounded-xl bg-sky-100 text-sky-700 font-bold text-xs shadow-sm flex items-center btn-bounce">
+                    <i class="fa-solid fa-volume-high mr-1.5"></i>發音
+                </button>
+            </div>
+
+            <!-- 卡片容器 (iPad 觸控翻面) -->
+            <div class="w-full max-w-lg h-[430px] perspective-1000 cursor-pointer" onclick="flipCard()">
+                <div id="flashcard-inner" class="relative w-full h-full transform-style-3d transition-transform duration-500 rounded-3xl shadow-xl">
+                    
+                    <!-- 卡片正面 (詞彙 + 注音) -->
+                    <div class="absolute inset-0 backface-hidden bg-white border-4 border-indigo-200 rounded-3xl p-8 flex flex-col justify-between items-center text-center">
+                        <div class="w-full flex justify-between items-center">
+                            <span id="card-cat-badge" class="bg-indigo-50 text-indigo-700 text-xs font-black px-3 py-1 rounded-full">成語精選</span>
+                            <span class="text-xs text-slate-400 font-semibold"><i class="fa-solid fa-hand-pointer mr-1"></i>輕點翻看意思</span>
+                        </div>
+
+                        <div class="my-auto">
+                            <h2 id="card-word" class="text-5xl font-black text-slate-800 tracking-wider mb-3">一瀉千里</h2>
+                            <p id="card-pinyin" class="text-lg font-bold text-indigo-600 tracking-widest">ㄧ ㄒㄧㄝˋ ㄑㄧㄢ ㄌㄧˇ</p>
+                            <div class="mt-6 flex justify-center">
+                                <span class="inline-flex items-center text-xs text-slate-600 bg-amber-50 border border-amber-200 px-3.5 py-1.5 rounded-xl shadow-sm">
+                                    <i class="fa-regular fa-lightbulb text-amber-500 mr-2 text-sm"></i><span class="font-bold mr-1">記憶聯想：</span><span id="card-memory-hint">水勢像坐超長滑水道飛奔極快</span>
+                                </span>
+                            </div>
+                        </div>
+
+                        <p class="text-xs text-indigo-400 font-bold">點擊卡片任何地方，翻開看例句與意思 👉</p>
+                    </div>
+
+                    <!-- 卡片背面 (白話拆解 + 生活造句) -->
+                    <div class="absolute inset-0 backface-hidden rotate-y-180 bg-gradient-to-br from-indigo-600 to-sky-700 text-white rounded-3xl p-7 flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-center justify-between border-b border-indigo-400/40 pb-3">
+                                <h3 id="card-back-word" class="text-2xl font-black tracking-wide">一瀉千里</h3>
+                                <span class="text-xs bg-white/20 text-white px-2.5 py-1 rounded-full font-bold">白話解密</span>
+                            </div>
+
+                            <!-- 詞義拆解 -->
+                            <div class="mt-4">
+                                <p class="text-xs text-sky-200 font-black mb-1">🔍 白話意思：</p>
+                                <p id="card-meaning" class="text-base sm:text-lg font-bold leading-relaxed text-slate-50">
+                                    形容江河水流直奔而下，水勢浩大迅猛；也用來比喻說話文章極其流暢。
+                                </p>
+                            </div>
+
+                            <!-- 生活造句 -->
+                            <div class="mt-4 bg-white/10 p-3.5 rounded-2xl border border-white/10">
+                                <p class="text-xs text-amber-300 font-black mb-1"><i class="fa-solid fa-pen-nib mr-1"></i>小學生生活造句：</p>
+                                <p id="card-sentence" class="text-sm sm:text-base leading-relaxed text-white">
+                                    大雨過後，山區的瀑布水勢驚人，如一瀉千里般奔騰而下。
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center justify-between text-xs text-sky-200 pt-2 border-t border-white/10">
+                            <span>💡 記住重點字：<strong id="card-key-char">瀉 (奔流)</strong></span>
+                            <span>點擊可翻回正面</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 翻卡控制按鈕 (大觸控目標) -->
+            <div class="flex items-center justify-between w-full max-w-lg mt-6 px-4">
+                <button onclick="prevCard()" class="w-14 h-14 rounded-2xl bg-white text-slate-700 border-2 border-slate-200 shadow-md flex items-center justify-center text-xl btn-bounce active:bg-slate-100">
+                    <i class="fa-solid fa-chevron-left"></i>
+                </button>
+                <button onclick="markCardMastered()" id="btn-master" class="flex-1 mx-4 h-14 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-white font-black text-base shadow-lg flex items-center justify-center space-x-2 btn-bounce">
+                    <i class="fa-solid fa-check text-xl"></i>
+                    <span>我記住了 (+1⭐)</span>
+                </button>
+                <button onclick="nextCard()" class="w-14 h-14 rounded-2xl bg-white text-slate-700 border-2 border-slate-200 shadow-md flex items-center justify-center text-xl btn-bounce active:bg-slate-100">
+                    <i class="fa-solid fa-chevron-right"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- 3. 模式二：語境挖空闖關視圖 -->
+        <div id="view-quiz" class="w-full hidden flex-col items-center">
+            <div class="w-full max-w-xl flex items-center justify-between mb-3">
+                <button onclick="switchMode('home')" class="px-3 py-1.5 rounded-xl bg-white border border-slate-200 text-slate-600 text-xs font-bold shadow-sm btn-bounce">
+                    <i class="fa-solid fa-house mr-1"></i>首頁
+                </button>
+                <div class="text-sm font-black text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
+                    關卡 <span id="quiz-curr-num">1</span> / 10
+                </div>
+                <div class="text-xs font-bold text-slate-500">
+                    連勝: <span id="quiz-streak" class="text-orange-500 font-black">0</span> 🔥
+                </div>
+            </div>
+
+            <!-- 進度條 -->
+            <div class="w-full max-w-xl bg-slate-200 h-2.5 rounded-full overflow-hidden mb-5">
+                <div id="quiz-progress-bar" class="bg-gradient-to-r from-emerald-400 to-teal-500 h-full w-[10%] transition-all duration-300"></div>
+            </div>
+
+            <!-- 題目卡片 -->
+            <div class="w-full max-w-xl bg-white rounded-3xl border-2 border-emerald-200 p-6 sm:p-8 shadow-xl relative">
+                <div class="flex items-center space-x-2 mb-4">
+                    <span class="bg-emerald-100 text-emerald-800 text-xs font-black px-2.5 py-1 rounded-md">生活情境填空</span>
+                    <span class="text-xs text-slate-400">請選出最恰當的圈詞</span>
+                </div>
+
+                <!-- 題目內容 -->
+                <p id="quiz-question-text" class="text-lg sm:text-2xl font-bold text-slate-800 leading-relaxed min-h-[90px] flex items-center">
+                    學習任何一門技藝都得按部就班，絕不可能（　　　　）。
+                </p>
+
+                <!-- 選項按鈕 (四選一，iPad 大按鈕) -->
+                <div id="quiz-options-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-3.5 mt-6">
+                    <!-- JS 動態產生選項 -->
+                </div>
+
+                <!-- 答題反饋提示框 -->
+                <div id="quiz-feedback" class="mt-5 p-4 rounded-2xl hidden">
+                    <div class="flex items-start">
+                        <i id="quiz-feedback-icon" class="text-2xl mr-3 mt-0.5"></i>
+                        <div>
+                            <p id="quiz-feedback-title" class="font-black text-base"></p>
+                            <p id="quiz-feedback-desc" class="text-xs sm:text-sm mt-1"></p>
+                        </div>
+                    </div>
+                    <button id="quiz-next-btn" onclick="nextQuizQuestion()" class="mt-4 w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-xl text-sm shadow-md btn-bounce">
+                        下一題 <i class="fa-solid fa-arrow-right ml-1"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. 模式三：詞義消消樂視圖 -->
+        <div id="view-match" class="w-full hidden flex-col items-center">
+            <div class="w-full max-w-3xl flex items-center justify-between mb-4">
+                <button onclick="switchMode('home')" class="px-3.5 py-1.5 rounded-xl bg-white border border-slate-200 text-slate-600 text-xs font-bold shadow-sm btn-bounce">
+                    <i class="fa-solid fa-arrow-left mr-1"></i>返回
+                </button>
+                <div class="text-base font-black text-amber-800 bg-amber-50 px-4 py-1.5 rounded-full border border-amber-200 flex items-center">
+                    <i class="fa-solid fa-stopwatch mr-1.5 text-amber-600"></i>
+                    已配對：<span id="match-score" class="text-amber-600 mx-1">0</span> / 5 組
+                </div>
+                <button onclick="resetMatchGame()" class="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-700 font-bold text-xs shadow-sm btn-bounce">
+                    <i class="fa-solid fa-rotate-right mr-1"></i>換一局
+                </button>
+            </div>
+
+            <p class="text-xs text-slate-500 mb-3 text-center">
+                👉 點擊左側「圈詞」，再點擊右側對應的「白話意思」，配對成功即可消除！
+            </p>
+
+            <!-- 兩欄配對區 (iPad 左右雙欄對戰模式) -->
+            <div class="grid grid-cols-2 gap-4 sm:gap-6 w-full max-w-3xl">
+                <!-- 左欄：詞彙 -->
+                <div id="match-words-col" class="flex flex-col gap-3">
+                    <!-- JS 動態插入詞彙卡 -->
+                </div>
+                <!-- 右欄：意思 -->
+                <div id="match-defs-col" class="flex flex-col gap-3">
+                    <!-- JS 動態插入釋義卡 -->
+                </div>
+            </div>
+        </div>
+
+        <!-- 5. 結算獎勵彈窗 -->
+        <div id="result-modal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+            <div class="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full text-center shadow-2xl border-4 border-amber-300">
+                <div class="w-20 h-20 bg-amber-100 text-amber-500 rounded-full flex items-center justify-center text-4xl mx-auto mb-4 animate-bounce">
+                    <i class="fa-solid fa-trophy"></i>
+                </div>
+                <h3 class="text-2xl sm:text-3xl font-black text-slate-800">闖關大成功！🎉</h3>
+                <p class="text-slate-500 text-sm mt-2">你已經是五年級國語圈詞達人！</p>
+
+                <div class="bg-amber-50 rounded-2xl p-4 my-6 flex justify-around items-center border border-amber-200">
+                    <div>
+                        <p class="text-xs text-slate-500 font-bold">獲得星星</p>
+                        <p id="modal-earned-stars" class="text-3xl font-black text-amber-600">+10 ⭐</p>
+                    </div>
+                    <div class="border-r border-amber-200 h-10"></div>
+                    <div>
+                        <p class="text-xs text-slate-500 font-bold">總掌握率</p>
+                        <p class="text-3xl font-black text-emerald-600">100%</p>
+                    </div>
+                </div>
+
+                <div class="flex space-x-3">
+                    <button onclick="switchMode('home')" class="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-black rounded-xl text-sm btn-bounce">
+                        回主選單
+                    </button>
+                    <button onclick="playAgain()" class="flex-1 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-xl text-sm shadow-md btn-bounce">
+                        再玩一次
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- 底部版權與激勵文字 -->
+    <footer class="text-center py-3 text-xs text-slate-400 border-t border-slate-100 bg-white/50">
+        五年級語文自主學習 · iPad 最佳解析度適配 · 寓教於樂
+    </footer>
+
+    <!-- 音效庫與遊戲邏輯腳本 -->
+    <script>
+        /* -------------------------------------------------------------
+           1. 圈詞題庫資料 (完整 6 課 192 詞完整收錄，含專屬記憶聯想)
+           ------------------------------------------------------------- */
+        const VOCAB_DATABASE = [
+            // ================= 第 1 課（照片 1：32 詞） =================
+            { id: 101, lesson: 1, word: "一拖再拖", pinyin: "ㄧ ㄊㄨㄛ ㄗㄞˋ ㄊㄨㄛ", hint: "作業明天再寫、後天再寫，像滾雪球越堆越高", keyChar: "拖 (拖延)", meaning: "不斷拖延時間，遲遲不肯去做。", example: "功課要早點寫完，千萬不能（一拖再拖）。", blankSentence: "做事要有時間觀念，絕不可（　　　　），否則會越積越多。" },
+            { id: 102, lesson: 1, word: "驚慌", pinyin: "ㄐㄧㄥ ㄏㄨㄤ", hint: "突遇大蟑螂跳起來手足無措的模樣", keyChar: "慌 (慌亂)", meaning: "心中害怕慌亂而不知所措。", example: "突然停電時請保持冷靜，不要（驚慌）。", blankSentence: "地震發生時，大家切莫（　　），應迅速躲在堅固桌子下。" },
+            { id: 103, lesson: 1, word: "健步如飛", pinyin: "ㄐㄧㄢˋ ㄅㄨˋ ㄖㄨˊ ㄈㄟ", hint: "雙腿好像踩著風火輪，走得比跑還快", keyChar: "健 (矯健)", meaning: "走起路來步伐矯健輕快，好像在飛一樣。", example: "外公每天晨跑，八十歲了依然（健步如飛）。", blankSentence: "他腳步矯健，爬起山路來依然（　　　　）。" },
+            { id: 104, lesson: 1, word: "斑駁", pinyin: "ㄅㄢ ㄅㄛˊ", hint: "老磚牆上的油漆一塊一塊剝落掉色", keyChar: "駁 (雜色剝落)", meaning: "色彩雜亂或油漆剝落不平的樣子。", example: "古廟的紅磚牆已經（斑駁），顯出歲月滄桑。", blankSentence: "這面古老的磚牆經歷風霜，字跡早已（　　）不清。" },
+            { id: 105, lesson: 1, word: "挺拔", pinyin: "ㄊㄧㄥˇ ㄅㄚˊ", hint: "像衛兵一樣把胸膛和背脊挺得筆直高聳", keyChar: "拔 (出眾高聳)", meaning: "直立高聳而剛健有精神。", example: "校園門口的松樹長得非常（挺拔）。", blankSentence: "操場兩側的白楊樹身姿（　　），像昂首的衛士。" },
+            { id: 106, lesson: 1, word: "少年", pinyin: "ㄕㄠˋ ㄋㄧㄢˊ", hint: "脫離小娃娃階段、正值青春活力的讀書學生", keyChar: "少 (年輕)", meaning: "十歲左右到十五、六歲的青澀年紀。", example: "身為新時代的（少年），我們要好好充實自己。", blankSentence: "莫等閒，白了（　　）頭，空悲切。" },
+            { id: 107, lesson: 1, word: "繁雜", pinyin: "ㄈㄢˊ ㄗㄚˊ", hint: "桌上堆滿不同科目的作業與雜物，頭昏眼花", keyChar: "繁 (繁多)", meaning: "事情繁多而紛亂複雜。", example: "這項籌備工作非常（繁雜），需要大家分工合作。", blankSentence: "面對（　　）的事務，只要按部就班就能一件件完成。" },
+            { id: 108, lesson: 1, word: "彈性", pinyin: "ㄊㄢˊ ㄒㄧㄥˋ", hint: "像彈簧床壓下去會彈回來，不硬邦邦死板板", keyChar: "彈 (回彈靈活)", meaning: "物體受外力變形後恢復原狀的性質；也指事情可靈活變通。", example: "安排週末活動要保留（彈性），才不會太趕。", blankSentence: "這雙球鞋的氣墊很有（　　），跑起步來特別舒適。" },
+            { id: 109, lesson: 1, word: "擁擠", pinyin: "ㄩㄥ ㄐㄧˇ", hint: "放學捷運像沙丁魚罐頭一樣人貼著人", keyChar: "擠 (挨擠推擠)", meaning: "人或車輛擠在一起，空間狹窄不通暢。", example: "上下班時間的捷運車廂總是十分（擁擠）。", blankSentence: "夜市裡人潮（　　），逛街時要特別注意隨身物品。" },
+            { id: 110, lesson: 1, word: "爛泥", pinyin: "ㄌㄢˋ ㄋㄧˊ", hint: "雨天踩下去會把鞋子緊緊吸住的濕爛泥漿", keyChar: "爛 (鬆軟稀爛)", meaning: "稀爛混濁的泥土。", example: "連日下雨，泥土路上積滿了（爛泥）。", blankSentence: "下過大雨後，操場跑道邊緣滿是濕軟的（　　）。" },
+            { id: 111, lesson: 1, word: "高興", pinyin: "ㄍㄠ ㄒㄧㄥˋ", hint: "拿到滿分考卷或吃冰淇淋時咧開嘴大笑", keyChar: "興 (興致歡喜)", meaning: "心情愉快、歡喜。", example: "收到遠方朋友寄來的生日明信片，我非常（高興）。", blankSentence: "看到自己用心栽種的向日葵盛開，小華心裡格外（　　）。" },
+            { id: 112, lesson: 1, word: "璀璨", pinyin: "ㄘㄨㄟˇ ㄘㄢˋ", hint: "跨年夜空綻放的金光閃閃高空煙火", keyChar: "璨 (光彩耀眼)", meaning: "光明燦爛、美麗耀眼的樣子。", example: "跨年夜的摩天大樓煙火顯得無比（璀璨）。", blankSentence: "夜空中繁星閃爍，像灑滿了（　　）的寶石。" },
+            { id: 113, lesson: 1, word: "采烈", pinyin: "ㄘㄞˇ ㄌㄧㄝˋ", hint: "聽到去遊樂園校外教學，全場嗨到跳起來歡呼", keyChar: "烈 (興奮熱烈)", meaning: "興致高昂、精神飽滿（常搭配「興高采烈」）。", example: "校外教學那天，大家興高（采烈）地出發了。", blankSentence: "運動會奪冠後，全班同學興高（　　）地歡呼慶祝。" },
+            { id: 114, lesson: 1, word: "流暖", pinyin: "ㄌㄧㄡˊ ㄋㄨㄢˇ", hint: "冬天吹來的一股和煦微風，全身頓時暖呼呼", keyChar: "暖 (溫暖)", meaning: "溫暖的水流或空氣流動。", example: "春天吹拂的微風中帶著一股（流暖）的氣息。", blankSentence: "陽光灑在身上，伴隨微風（　　），讓人倍感舒服。" },
+            { id: 115, lesson: 1, word: "益發", pinyin: "ㄧˋ ㄈㄚ", hint: "喝水後越長越高的幼苗，程度「更加」顯著", keyChar: "益 (更、愈加)", meaning: "更加、越發。", example: "聽了老師的解說，同學們對自然科學（益發）感興趣。", blankSentence: "雨過天晴後，山間的樹木顯得（　　）翠綠蒼翠。" },
+            { id: 116, lesson: 1, word: "灌溉", pinyin: "ㄍㄨㄢˋ ㄍㄞˋ", hint: "開水閥讓清涼的溪水嘩啦啦流進整片稻田澆水", keyChar: "灌 (澆水注入)", meaning: "將水輸送到田地裡澆灌農作物。", example: "農夫引嘉南大圳的水來（灌溉）稻田。", blankSentence: "這條清澈的河流孕育了整個平原，是（　　）農田的重要水源。" },
+            { id: 117, lesson: 1, word: "滿臉", pinyin: "ㄇㄢˇ ㄌㄧㄢˇ", hint: "偷吃巧克力蛋糕沾到整張臉都是", keyChar: "滿 (覆蓋充滿)", meaning: "整個臉部充滿某種神情或物質。", example: "弟弟聽完笑話後，笑得（滿臉）通紅。", blankSentence: "他跑完大隊接力，雖然氣喘呼呼，卻（　　）笑容。" },
+            { id: 118, lesson: 1, word: "而上", pinyin: "ㄦˊ ㄕㄤˋ", hint: "面對陡峭階梯咬牙一步一步往上爬不回頭", keyChar: "上 (向上攀登)", meaning: "順著某個方向往上發展（如迎難而上）。", example: "面對登山挑戰，全隊隊員迎難（而上）。", blankSentence: "遇到困難不可退縮，要勇敢迎難（　　）。" },
+            { id: 119, lesson: 1, word: "延遲", pinyin: "ㄧㄢˊ ㄔˊ", meaning: "把原本預定的時間往後推延。", hint: "手錶時針被往後撥，預定的起跑時間延後了", keyChar: "遲 (推晚延後)", example: "因為大霧瀰漫，班機只得（延遲）起飛。", blankSentence: "颱風來襲導致火車班次（　　），乘客只能耐心等候。" },
+            { id: 120, lesson: 1, word: "長身", pinyin: "ㄔㄤˊ ㄕㄣ", hint: "個子長得高高瘦瘦、身段筆直修長", keyChar: "長 (修長高挑)", meaning: "挺直身體或身形修長。", example: "他（長身）玉立，在人群中顯得格外醒目。", blankSentence: "老松樹傲然（　　），立於風雪之中。" },
+            { id: 121, lesson: 1, word: "頭如", pinyin: "ㄊㄡˊ ㄖㄨˊ", hint: "做錯事低著頭像小搗蒜器一樣頻頻點頭", keyChar: "如 (如同好像)", meaning: "頭部如同（常見於「頭如搗蒜」等比喻）。", example: "犯錯的他羞愧不已，連忙點（頭如）搗蒜認錯。", blankSentence: "小狗見到主人回來，興奮得搖尾叩（　　）。" },
+            { id: 122, lesson: 1, word: "爛爛", pinyin: "ㄌㄢˋ ㄌㄢˋ", hint: "紅豆湯在電鍋裡慢熬好幾個小時，入口即化", keyChar: "爛 (鬆軟軟綿)", meaning: "極為鬆爛或明亮璀璨之貌。", example: "鍋裡的紅豆經過小火慢燉，已經煮得（爛爛）的了。", blankSentence: "經過數小時熬煮，鍋中的牛肉燉得軟（　　）可口。" },
+            { id: 123, lesson: 1, word: "欠缺", pinyin: "ㄑㄧㄢˋ ㄑㄩㄝ", hint: "拼圖只差最後一片，缺了一塊不完整", keyChar: "欠 (不足缺少)", meaning: "缺少、不充足。", example: "這份企劃書想法很好，但（欠缺）具體的執行步驟。", blankSentence: "想要把球打好，他最（　　）的就是持續苦練的耐力。" },
+            { id: 124, lesson: 1, word: "漢堡", pinyin: "ㄏㄢˋ ㄅㄠˇ", hint: "兩片鬆軟圓麵包夾著香噴噴牛肉餅與生菜", keyChar: "堡 (西式圓包)", meaning: "一種夾著肉餅、蔬菜的西式圓麵包食品。", example: "今天午餐媽媽為我準備了自製的健康蔬菜（漢堡）。", blankSentence: "弟弟最喜歡在早餐時吃一個美味香熱的牛肉（　　）。" },
+            { id: 125, lesson: 1, word: "白費", pinyin: "ㄅㄞˊ ㄈㄟˋ", hint: "花了三小時做的沙雕城堡被海水浪花一沖全沒了", keyChar: "白 (徒勞無功)", meaning: "白白耗費力氣或金錢，沒有得到任何效果。", example: "只要堅持下去，過去流下的汗水就絕不會（白費）。", blankSentence: "只要努力堅持，我們的辛苦付出絕對不會（　　）。" },
+            { id: 126, lesson: 1, word: "直邁", pinyin: "ㄓˊ ㄇㄞˋ", hint: "眼睛看著前方終點線，大步大步跨出去", keyChar: "邁 (大步跨進)", meaning: "毫不猶豫地大步向前邁進。", example: "運動員們堅定信念，朝著冠軍目標（直邁）。", blankSentence: "跨過眼前的障礙，我們昂首闊步朝著終點線（　　）。" },
+            { id: 127, lesson: 1, word: "忙忙", pinyin: "ㄇㄤˊ ㄇㄤˊ", hint: "鬧鐘響了快遲到，慌慌張張套上外套往門口衝", keyChar: "忙 (倉促急促)", meaning: "急急忙忙、慌忙的樣子。", example: "上學快遲到了，他（忙忙）抓起書包就往門外衝。", blankSentence: "清晨的街道上，滿是急急（　　）趕著上班的人群。" },
+            { id: 128, lesson: 1, word: "時刻", pinyin: "ㄕˊ ㄎㄜˋ", hint: "倒數三二一跨年的那幾秒鐘，最關鍵的瞬間", keyChar: "刻 (關鍵時分)", meaning: "特定的時間或關頭；也指每時每刻。", example: "接力賽到了決勝（時刻），全場觀眾屏息以待。", blankSentence: "在關鍵的倒數（　　），隊長投進了反超比分的致勝球。" },
+            { id: 129, lesson: 1, word: "身著", pinyin: "ㄕㄣ ㄓㄨㄛˊ", hint: "把帥氣的童軍制服整整齊齊穿在身上", keyChar: "著 (穿著配戴)", meaning: "身體穿戴著服裝或配飾。", example: "儀隊隊員（身著）整齊挺拔的制服，顯得威風凜凜。", blankSentence: "警衛叔叔（　　）制服，在校門口認真守護大家的安全。" },
+            { id: 130, lesson: 1, word: "髮泥", pinyin: "ㄈㄚˇ ㄋㄧˊ", hint: "用手指抹一點像黏土般的髮蠟抓出帥氣髮型", keyChar: "泥 (黏稠膏狀)", meaning: "整理頭髮造型用的凝固髮蠟或髮膠。", example: "哥哥出門前塗了一點（髮泥），把頭髮抓得很有精神。", blankSentence: "爸爸輕輕抹上少許（　　），整理出帥氣整潔的西裝頭。" },
+            { id: 131, lesson: 1, word: "作業", pinyin: "ㄗㄨㄛˋ ㄧㄝˋ", hint: "書包裡每天要認真寫完交給老師打勾的作業本", keyChar: "作 (動手操作)", meaning: "學校指定的課後練習；或指某種技術操作工程。", example: "放學後要先專心把家庭（作業）完成再玩耍。", blankSentence: "放學回家的第一件事，就是認真完成今天的各科（　　）。" },
+            { id: 132, lesson: 1, word: "一瀉千里", pinyin: "ㄧ ㄒㄧㄝˋ ㄑㄧㄢ ㄌㄧˇ", hint: "高山大瀑布像坐極速滑水道，嘩啦啦衝了千里遠", keyChar: "瀉 (水勢急奔)", meaning: "形容水流直下奔騰極快；也比喻文筆極為暢達。", example: "雨後山谷中的瀑布（一瀉千里），氣勢磅礴。", blankSentence: "大雨過後，山洪爆發（　　　　），氣勢相當驚人。" },
+
+            // ================= 第 2 課（照片 2：32 詞） =================
+            { id: 201, lesson: 2, word: "向前", pinyin: "ㄒㄧㄤˋ ㄑㄧㄢˊ", hint: "聽見起跑槍響，毫不猶豫筆直朝著前方奔跑", keyChar: "前 (正前方)", meaning: "朝著前方方向前進。", example: "無論遇到多少挫折，我們都要勇敢（向前）邁進。", blankSentence: "哨音響起，跑者們毫不猶豫全力（　　）衝刺。" },
+            { id: 202, lesson: 2, word: "值得", pinyin: "ㄓˊ ㄉㄜˊ", hint: "辛苦練習了一個月拿下金牌，流下的汗水都划算了", keyChar: "值 (有價值)", meaning: "有價值、划算、有意義。", example: "花時間閱讀好書，是非常（值得）的自我投資。", blankSentence: "能為班級爭取榮譽，這段日子的辛苦都是（　　）的。" },
+            { id: 203, lesson: 2, word: "施展", pinyin: "ㄕ ㄓㄢˇ", hint: "把口袋裡收藏的所有魔法絕招全部大秀特秀", keyChar: "展 (展開發揮)", meaning: "將自己的本領或才能發揮出來。", example: "他在舞台上盡情（施展）自己的舞蹈才華。", blankSentence: "只要給他舞台，他一定能充分（　　）過人的繪畫天賦。" },
+            { id: 204, lesson: 2, word: "聚光", pinyin: "ㄐㄩˋ ㄍㄨㄤ", hint: "黑暗舞台上唯獨一道超亮圓形光束照在主角頭頂", keyChar: "聚 (聚集聚焦)", meaning: "將光線集中聚焦在某一個焦點上。", example: "（聚光）燈照在獨唱歌手身上，全場掌聲雷動。", blankSentence: "舞台上的（　　）燈打在主角身上，格外吸引目光。" },
+            { id: 205, lesson: 2, word: "從容", pinyin: "ㄘㄨㄥˊ ㄖㄨㄥˊ", hint: "上台演講前深吸一口氣，不慌不忙、面帶微笑慢慢講", keyChar: "容 (沈著神態)", meaning: "沉著穩重、從容不迫、不慌不忙。", example: "雖然面對全校師生演講，他依然態度（從容）。", blankSentence: "他胸有成竹，在考試中始終表現得十分（　　）。" },
+            { id: 206, lesson: 2, word: "存留", pinyin: "ㄘㄨㄣˊ ㄌㄧㄡˊ", hint: "把阿公年輕時的老手錶放進寶盒妥善收藏至今", keyChar: "留 (保留不失)", meaning: "保留並流傳下來，沒有消失。", example: "這張泛黃的老照片，（存留）了爺爺童年的美好回憶。", blankSentence: "經過多次搬家，這本童年相簿依然妥善（　　）至今。" },
+            { id: 207, lesson: 2, word: "寬容", pinyin: "ㄎㄨㄢ ㄖㄨㄥˊ", hint: "胸懷像大海一樣大，別人不小心踩到你的腳也能微笑原諒", keyChar: "寬 (大度寬宏)", meaning: "寬大有度量，原諒他人的過錯。", example: "面對別人的無心之過，我們要學會以（寬容）的心原諒他。", blankSentence: "有涵養的人往往懂得用（　　）的心態接納不同意見。" },
+            { id: 208, lesson: 2, word: "心存感激", pinyin: "ㄒㄧㄣ ㄘㄨㄣˊ ㄍㄢˇ ㄐㄧˊ", hint: "下雨天沒傘時同學分傘給你，心裡有一股暖暖的感謝", keyChar: "存 (常存心中)", meaning: "心中常常懷著感謝與回報的心意。", example: "對於老師耐心的教導，我始終（心存感激）。", blankSentence: "獲得大家的熱心相助，他（　　　　），連聲道謝。" },
+            { id: 209, lesson: 2, word: "禍從口出", pinyin: "ㄏㄨㄛˋ ㄘㄨㄥˊ ㄎㄡˇ ㄔㄨ", hint: "嘴巴不把關亂說話，像放出一隻小怪獸引來大麻煩", keyChar: "禍 (災難壞事)", meaning: "說話不謹慎小心，往往會招致禍害與誤會。", example: "說話要三思而後行，切記（禍從口出）的道理。", blankSentence: "為人處事說話要謹慎，免得（　　　　），惹來無端麻煩。" },
+            { id: 210, lesson: 2, word: "索取", pinyin: "ㄙㄨㄛˇ ㄑㄩˇ", hint: "到展覽服務台禮貌伸手拿取免費的彩色導覽地圖", keyChar: "索 (主動討取)", meaning: "主動要求索要物品或資訊。", example: "參觀博物館時，可以在服務台（索取）導覽手冊。", blankSentence: "民眾可以到櫃台免費（　　）展覽參觀簡介。" },
+            { id: 211, lesson: 2, word: "責任", pinyin: "ㄗㄜˊ ㄖㄣˋ", hint: "身為值日生，把黑板擦乾淨就是自己必須扛起的任務", keyChar: "任 (承擔擔子)", meaning: "份內應當做好的事情與承擔的義務。", example: "維護教室的整潔，是全班每一位同學的（責任）。", blankSentence: "照顧好自己的健康，是對自己也對家人的一種（　　）。" },
+            { id: 212, lesson: 2, word: "謹慎", pinyin: "ㄐㄧㄣˇ ㄕㄣˋ", hint: "過斑馬線先看左再看右，手裡端著熱湯步步小心", keyChar: "慎 (小心周密)", meaning: "小心仔細，不馬虎草率。", example: "做科學實驗時操作藥品要格外（謹慎），注意安全。", blankSentence: "過馬路時一定要（　　），切勿低頭滑手機。" },
+            { id: 213, lesson: 2, word: "焦急", pinyin: "ㄐㄧㄠ ㄐㄧˊ", hint: "校車快開走了卻找不到書包，急得像熱鍋上的螞蟻", keyChar: "焦 (心如火焦)", meaning: "著急難耐，心情如同火燒。", example: "找不到鑰匙的爸爸在客廳裡（焦急）地走來走去。", blankSentence: "遲遲等不到校車，同學們臉上露出（　　）的神情。" },
+            { id: 214, lesson: 2, word: "得以", pinyin: "ㄉㄜˊ ㄧˇ", hint: "拿到了通行證，「終於能夠」順利推門進去", keyChar: "得 (獲得能夠)", meaning: "因此而能夠達成某種目標。", example: "因為平日紮實的練習，球隊（得以）在決賽中奪冠。", blankSentence: "多虧醫護人員悉心照顧，病人（　　）迅速恢復健康。" },
+            { id: 215, lesson: 2, word: "道歉", pinyin: "ㄉㄠˋ ㄑㄧㄢˋ", hint: "不小心踩到別人的白球鞋，真誠鞠躬說聲對不起", keyChar: "歉 (愧疚心意)", meaning: "承認自己的錯誤並向對方表示歉意。", example: "不小心踩到同學的腳，他立刻真誠地向對方（道歉）。", blankSentence: "做錯事情要勇於認錯，真誠地向對方說聲（　　）。" },
+            { id: 216, lesson: 2, word: "碰碰", pinyin: "ㄆㄥˋ ㄆㄥˋ", hint: "好奇地用食指輕輕敲敲不倒翁看它搖晃", keyChar: "碰 (輕觸相擊)", meaning: "輕輕觸碰、撞擊。", example: "弟弟調皮地伸出手，（碰碰）桌上的不倒翁玩具。", blankSentence: "貓咪用毛茸茸的爪子輕輕（　　）我的手背撒嬌。" },
+            { id: 217, lesson: 2, word: "滿懷", pinyin: "ㄇㄢˇ ㄏㄨㄞˊ", hint: "胸口塞滿了像是裝滿氣球般的期待與喜悅", keyChar: "懷 (胸口心懷)", meaning: "心中充滿了某種情感。", example: "畢業典禮上，大家（滿懷）著感恩與不捨之情。", blankSentence: "開學第一天，同學們（　　）期待地走進新教室。" },
+            { id: 218, lesson: 2, word: "遭遇", pinyin: "ㄗㄠ ㄩˋ", hint: "走在路上突然遇到狂風暴雨，親身碰上考驗", keyChar: "遭 (碰上經歷)", meaning: "親身碰到某種經歷（通常指挫折或困境）。", example: "面對突如其來的（遭遇），他展現出無比的堅韌毅力。", blankSentence: "即使旅途（　　）風雨，也不能阻擋我們前進的決心。" },
+            { id: 219, lesson: 2, word: "出神", pinyin: "ㄔㄨ ㄕㄣˊ", hint: "看著窗外的雨滴發呆，別人在耳邊叫你三聲都沒聽見", keyChar: "神 (心神飄出)", meaning: "精神注意力完全集中或沉浸在幻想中發愣。", example: "望著窗外的雨景，她一時看入了迷，不禁（出神）了。", blankSentence: "他望著天邊絢爛的夕陽，看得入了迷，一時（　　）。" },
+            { id: 220, lesson: 2, word: "歉意", pinyin: "ㄑㄧㄢˋ ㄧˋ", hint: "心裡覺得很不好意思、感到過意不去的念頭", keyChar: "歉 (愧疚心意)", meaning: "覺得自己做錯對不起對方的愧疚心意。", example: "對於造成大家的困擾，他深深一鞠躬表達內心的（歉意）。", blankSentence: "因為自己的失誤延誤行程，他連忙表達深切的（　　）。" },
+            { id: 221, lesson: 2, word: "躁不", pinyin: "ㄗㄠˋ ㄅㄨˋ", hint: "像坐不住的小猴子一樣急躁扭動、無法定下來", keyChar: "躁 (浮躁急躁)", meaning: "心浮氣躁不能冷靜（常用於急躁不安）。", example: "做事要沈得住氣，切勿心浮（躁不）安。", blankSentence: "考試前夕切莫焦（　　）安，應平心靜氣複習。" },
+            { id: 222, lesson: 2, word: "言怪", pinyin: "ㄧㄢˊ ㄍㄨㄞˋ", hint: "講出來的話奇奇怪怪或者帶著埋怨口氣", keyChar: "怪 (奇特怪異)", meaning: "話語怪誕離奇或帶有責怪之意。", example: "他平日少言寡語，今天說話卻有些（言怪），令人不解。", blankSentence: "別聽那些妖（　　）之詞，我們要相信科學事實。" },
+            { id: 223, lesson: 2, word: "難償", pinyin: "ㄋㄢˊ ㄔㄤˊ", hint: "父母深厚無比的養育恩情，花一輩子也還不完", keyChar: "償 (還清補償)", meaning: "難以補償或難以償還。", example: "父母如山般的養育大恩，我們為人子女終身（難償）。", blankSentence: "犯下如此大錯所造成的損失，恐怕是傾家蕩產也（　　）。" },
+            { id: 224, lesson: 2, word: "某人", pinyin: "ㄇㄡˇ ㄖㄣˊ", hint: "神祕地指某一個不知道名字或是故意不說名字的同學", keyChar: "某 (不特定指)", meaning: "指不便指名道姓或不特定的人。", example: "班長提醒大家：請（某人）記得明天交班費。", blankSentence: "傳說中那座幽深的山洞，曾被（　　）探險家發現過。" },
+            { id: 225, lesson: 2, word: "原諒", pinyin: "ㄩㄢˊ ㄌㄧㄤˋ", hint: "拍拍對方的肩膀笑著說：沒關係，下次注意就好！", keyChar: "諒 (體諒包容)", meaning: "寬恕體諒別人的過錯，不再怪罪。", example: "只要真心認錯改過，大家一定會（原諒）你的。", blankSentence: "同學誠懇地認錯了，老師欣慰地微笑並（　　）了他。" },
+            { id: 226, lesson: 2, word: "感謝", pinyin: "ㄍㄢˇ ㄒㄧㄝˋ", hint: "雙手合十對為我們付出的人說聲最真摯的謝謝", keyChar: "謝 (致謝謝恩)", meaning: "對別人的恩惠與幫助表示感激。", example: "非常（感謝）志工媽媽們每天在校門口導護交通。", blankSentence: "我們應該常懷感恩，（　　）身邊默默付出的人。" },
+            { id: 227, lesson: 2, word: "出路", pinyin: "ㄔㄨ ㄌㄨˋ", hint: "迷宮裡通往出口的那條大馬路，比喻未來的光明方向", keyChar: "路 (通暢路徑)", meaning: "通往外面的通道；也比喻未來發展的方向。", example: "只要擁有一技之長，未來不怕找不到好（出路）。", blankSentence: "三百六十行，行行出狀元，只要努力一定有（　　）。" },
+            { id: 228, lesson: 2, word: "魔燈", pinyin: "ㄇㄛˊ ㄉㄥ", hint: "童話裡阿拉丁用袖子擦一擦就會冒出神燈精靈的油燈", keyChar: "魔 (魔法神奇)", meaning: "神奇有魔法的燈（童話神話道具）。", example: "童話故事裡阿拉丁擦了擦（魔燈），精靈立刻跳了出來。", blankSentence: "故事中的主角擦拭著神祕的（　　），許下了三個願望。" },
+            { id: 229, lesson: 2, word: "回味", pinyin: "ㄏㄨㄟˊ ㄨㄟˋ", hint: "吃完香濃冰淇淋後，舌尖依然停留著甜蜜美好的滋味", keyChar: "味 (回想品味)", meaning: "在心中反覆思索品嚐過去的美好感受。", example: "那場精彩絕倫的音樂會，至今依然令人（回味）無窮。", blankSentence: "美味的傳統老糕餅，入口後讓人細細（　　）童年滋味。" },
+            { id: 230, lesson: 2, word: "邁進", pinyin: "ㄇㄞˋ ㄐㄧㄣˋ", hint: "挺起胸膛、跨出堅定的大步往新學期新目標出發", keyChar: "邁 (大步邁開)", meaning: "大步向前走，朝著目標奮進。", example: "新學期開始，讓我們一起朝著新目標大步（邁進）。", blankSentence: "畢業後大家即將各奔前程，朝向下一個人生階段大步（　　）。" },
+            { id: 231, lesson: 2, word: "法進", pinyin: "ㄈㄚˇ ㄐㄧㄣˋ", hint: "掌握了跳繩或背單字的訣竅法則，進步神速", keyChar: "法 (規律法則)", meaning: "依循良好法則不斷增進前進。", example: "學習若能掌握其法，自然能循（法進）步。", blankSentence: "運動訓練講求循序漸進，才能（　　）有功。" },
+            { id: 232, lesson: 2, word: "得不償失", pinyin: "ㄉㄜˊ ㄅㄨˋ ㄔㄤˊ ㄕ", hint: "偷玩半小時手機，結果被沒收零用錢一個月，太划不來了", keyChar: "失 (損失慘重)", meaning: "得到的利益彌補不了失去的損失，非常划不來。", example: "為了貪小便宜買到劣質假貨，真是（得不償失）。", blankSentence: "熬夜玩手機搞壞身體住院，真是（　　　　），划不來。" },
+
+            // ================= 第 3 課（照片 3：32 詞） =================
+            { id: 301, lesson: 3, word: "井然有序", pinyin: "ㄐㄧㄥˇ ㄖㄢˊ ㄧㄡˇ ㄒㄩˋ", hint: "圖書館裡的書一本挨著一本依號碼排得超整齊", keyChar: "序 (條理次序)", meaning: "整整齊齊、條理分明，毫無凌亂混雜。", example: "書局裡各類圖書擺放得（井然有序），方便讀者尋找。", blankSentence: "走進學校圖書館，書架上的各類書籍擺放得（　　　　）。" },
+            { id: 302, lesson: 3, word: "有一真", pinyin: "ㄧㄡˇ ㄧ ㄓㄣ", hint: "胸膛裡跳動著一顆純潔誠實、不說謊的真心", keyChar: "真 (純真赤誠)", meaning: "懷有一顆真實純粹的心靈。", example: "他的文字雖樸素，卻（有一真）摯動人之情。", blankSentence: "待人處事貴在誠實，胸中（　　　）誠最為動人。" },
+            { id: 303, lesson: 3, word: "深氣", pinyin: "ㄕㄣ ㄑㄧˋ", hint: "運動或演講前閉眼將新鮮空氣大口吸滿整個肺部", keyChar: "氣 (深長氣息)", meaning: "深長悠遠的呼吸或沉穩深厚之氣質。", example: "上台前深吸一口（深氣），能讓緊張的心情平靜下來。", blankSentence: "面對強大的壓力，先閉眼深吸一口（　　），再冷靜思考。" },
+            { id: 304, lesson: 3, word: "追求", pinyin: "ㄓㄨㄟ ㄑㄧㄡˊ", hint: "像向前奔跑去接住飛盤一樣，全力奔向自己的夢想", keyChar: "追 (奮力追趕)", meaning: "努力尋找並設法達到某種目標或理想。", example: "每個人都應堅持（追求）自己的夢想，不輕言放棄。", blankSentence: "在人生的道路上，我們要不斷（　　）知識與進步。" },
+            { id: 305, lesson: 3, word: "累積", pinyin: "ㄌㄟˇ ㄐㄧ", hint: "存錢筒裡每天丟一個銅板，最後堆成滿滿一罐", keyChar: "積 (聚沙成塔)", meaning: "逐漸聚積聚集。", example: "學好英文需要天天（累積）單字量與聽力。", blankSentence: "成功不是一朝一夕的事，而是平日點滴經驗（　　）而成的。" },
+            { id: 306, lesson: 3, word: "衡周", pinyin: "ㄏㄥˊ ㄓㄡ", hint: "像天平秤重一樣，把事情的每一面都周密考慮到", keyChar: "衡 (權衡兼顧)", meaning: "思慮周密、平衡兼顧。", example: "做重大決定時，必須（衡周）各方利弊得失。", blankSentence: "規劃行程必須再三（　　），才能確保旅途平安順利。" },
+            { id: 307, lesson: 3, word: "調整", pinyin: "ㄊㄧㄠˊ ㄓㄥˇ", hint: "把鬧鐘鈴聲撥準、把歪掉的自行車坐墊調到剛好高", keyChar: "整 (調校整理)", meaning: "改變適應、整頓調度以達到最佳狀態。", example: "開學第一週要趕快（調整）作息，早睡早起。", blankSentence: "經過教練戰術（　　），隊伍在下半場打出了精彩反擊。" },
+            { id: 308, lesson: 3, word: "成績", pinyin: "ㄔㄥˊ ㄐㄧ", hint: "學期末考卷上用紅筆打出的分數與用心累積的成果", keyChar: "績 (耕耘成效)", meaning: "工作或學習所獲得的成效成果。", example: "只要平日肯努力，考試自然能考出理想的（成績）。", blankSentence: "他在全國小學田徑賽中奪金，創下了輝煌的（　　）。" },
+            { id: 309, lesson: 3, word: "樹讚", pinyin: "ㄕㄨˋ ㄗㄢˋ", hint: "為大家立下好標竿，每個人看見都忍不住比大拇指讚嘆", keyChar: "樹 (樹立立下)", meaning: "樹立良好典範而受到眾人讚賞。", example: "他熱心助人的崇高精神，為全體同學（樹讚）了優良榜樣。", blankSentence: "這項公益計畫獲得社會各界的推崇與（　　）。" },
+            { id: 310, lesson: 3, word: "耳目", pinyin: "ㄦˇ ㄇㄨˋ", hint: "看到神奇新科技產品，眼睛亮起來、耳朵豎起來的震撼感", keyChar: "耳目 (視聽感官)", meaning: "耳朵與眼睛；形容聽聞與見識。", example: "這場充滿創意的科技展覽，讓人感到（耳目）一新。", blankSentence: "這場融合傳統與未來的舞台劇，令人（　　）一新。" },
+            { id: 311, lesson: 3, word: "善目", pinyin: "ㄕㄢˋ ㄇㄨˋ", hint: "慈祥老爺爺笑瞇瞇的眼睛，散發無比溫柔的光芒", keyChar: "目 (和善眼眸)", meaning: "慈祥和善的眼神面容（如慈眉善目）。", example: "老奶奶面帶微笑、慈眉（善目），看起來非常和藹可親。", blankSentence: "土地公神像慈眉（　　），保佑著鄉里百姓平安。" },
+            { id: 312, lesson: 3, word: "一碑", pinyin: "ㄧ ㄅㄟ", hint: "立在歷史路口的一座大石碑，象徵重大突破", keyChar: "碑 (里程碑石)", meaning: "一座石碑或留存後世的重要里程碑。", example: "這項偉大的科技突破，成了現代醫學史上的（一碑）。", blankSentence: "這座紀念碑歷經百年，如歷史的（　　）見證。" },
+            { id: 313, lesson: 3, word: "行新", pinyin: "ㄒㄧㄥˊ ㄒㄧㄣ", hint: "穿新跑鞋邁開新步伐，實踐嶄新的學習計畫", keyChar: "新 (嶄新開拓)", meaning: "踐行嶄新的做法與觀念。", example: "學校推（行新）課綱，鼓勵學生自主探究學習。", blankSentence: "企業推（　　）政，希望能提升整體工作效率。" },
+            { id: 314, lesson: 3, word: "念行", pinyin: "ㄋㄧㄢˋ ㄒㄧㄥˊ", hint: "心裡想著做好事，雙手雙腳就馬上去實踐", keyChar: "行 (實踐落實)", meaning: "心中所念與實踐行為相符。", example: "做人要心（念行）善，表裡如一才值得尊敬。", blankSentence: "知行合一，讓崇高的理（　　）化為具體的實際行動。" },
+            { id: 315, lesson: 3, word: "自然", pinyin: "ㄗˋ ㄖㄢˊ", hint: "茂密森林小溪與微風，或者說話不做作很放鬆的樣子", keyChar: "自 (天然自在)", meaning: "天然生成的環境；也指舉止不拘束生硬。", example: "他的演講台風非常（自然），說話流暢生動。", blankSentence: "假日時走進大（　　）爬山健行，能使身心徹底放鬆。" },
+            { id: 316, lesson: 3, word: "故障", pinyin: "ㄍㄨˋ ㄓㄤˋ", hint: "機器齒輪卡住卡滋一聲卡死不動、冒出警示紅燈", keyChar: "障 (障礙阻滯)", meaning: "機械設備發生問題停止運轉。", example: "電梯突然發生（故障），大樓管理員立即前來維修。", blankSentence: "洗衣機突然發出異音並發生（　　），需要請水電師傅檢修。" },
+            { id: 317, lesson: 3, word: "頻繁", pinyin: "ㄆㄧㄣˊ ㄈㄢˊ", hint: "滴答雨水接連不斷、連續好多次敲打窗戶", keyChar: "頻 (頻次接連)", meaning: "次數非常多、接連不斷地發生。", example: "這條山路常有落石，地震過後更不可（頻繁）進出。", blankSentence: "這條道路車流量極大，交通事故發生得相當（　　）。" },
+            { id: 318, lesson: 3, word: "全體", pinyin: "ㄑㄩㄢˊ ㄊㄧˇ", hint: "班級大合照時一個都沒少，全班同學一起大喊耶", keyChar: "全 (完整全員)", meaning: "全部的人員或整體組成的總和。", example: "校慶運動會上，（全體）師生精神抖擻地齊步進場。", blankSentence: "在（　　）隊員同心協力下，我們終於奪得錦標賽冠軍。" },
+            { id: 319, lesson: 3, word: "撞體", pinyin: "ㄓㄨㄤˋ ㄊㄧˇ", hint: "厚實堅固的保險桿構造，能承受大力衝撞保護裡面", keyChar: "撞 (抗撞衝擊)", meaning: "物體受外力撞擊之狀態或抗撞構造。", example: "新型汽車經過嚴格的（撞體）測試，防護性極高。", blankSentence: "工程師特別加強了車廂的防（　　）結構，保護乘客安全。" },
+            { id: 320, lesson: 3, word: "包制", pinyin: "ㄅㄠ ㄓˋ", hint: "把所有工程像一個大禮包一樣整套統籌管理起來", keyChar: "包 (承包整括)", meaning: "整體承包或包裹製作之形式。", example: "這座公園綠化工程採取（包制）營運，維護得很漂亮。", blankSentence: "這項採購案由專業團隊（　　）處理，進度非常有條理。" },
+            { id: 321, lesson: 3, word: "多撞", pinyin: "ㄉㄨㄛ ㄓㄨㄤˋ", hint: "打碰碰車或籃球禁區卡位時，接連不斷的肢體碰撞", keyChar: "多 (多次撞擊)", meaning: "多重碰撞衝擊。", example: "在籃球禁區卡位搶籃板，常會有（多撞）擊與肢體對抗。", blankSentence: "球賽進行到激烈時刻，禁區免不了發生許（　　）接觸。" },
+            { id: 322, lesson: 3, word: "完成", pinyin: "ㄨㄢˊ ㄔㄥˊ", hint: "最後一塊拼圖喀嗒放進去，大功告成拍手慶祝", keyChar: "完 (完結圓滿)", meaning: "做好事情、達成任務。", example: "大家分工合作，只花了半小時就（完成）了教室大掃除。", blankSentence: "經過一整個下午的努力，他終於（　　）了這幅百片拼圖。" },
+            { id: 323, lesson: 3, word: "預期", pinyin: "ㄩˋ ㄑㄧˊ", hint: "心裡先估計猜想大概會得到多少分的好成績", keyChar: "期 (期待估計)", meaning: "事先預先推測期待之結果。", example: "今天的義賣活動成果比（預期）的還要好上許多。", blankSentence: "這部熱門動畫電影的票房，遠遠超出了當初的（　　）。" },
+            { id: 324, lesson: 3, word: "涵養", pinyin: "ㄏㄢˊ ㄧㄤˇ", hint: "肚子裡裝著滿滿的學問與好品德，遇到壞脾氣也能優雅微笑", keyChar: "涵 (胸懷涵蓋)", meaning: "道德修養、品德學識的累積功夫。", example: "他學問淵博，而且言談舉止非常有（涵養），令人敬佩。", blankSentence: "多讀好書能培養心性，增進個人的文化氣質與（　　）。" },
+            { id: 325, lesson: 3, word: "前輩", pinyin: "ㄑㄧㄢˊ ㄅㄟˋ", hint: "高年級學長姊或經驗豐富的師傅，比我們早走好幾步路", keyChar: "前 (資歷先行)", meaning: "資歷或年齡較長、經驗豐富的人。", example: "在職場或球場上，遇到經驗豐富的（前輩）要虛心請教。", blankSentence: "虛心向前人與（　　）請教，能讓我們少走許多冤枉路。" },
+            { id: 326, lesson: 3, word: "善力", pinyin: "ㄕㄢˋ ㄌㄧˋ", hint: "每個人捐出一枚銅板，聚集起來能蓋大醫院的巨大愛心力量", keyChar: "力 (行善力量)", meaning: "行善的力量與正向能力。", example: "匯聚社會各界的（善力），能幫助更多需要關懷的弱勢。", blankSentence: "只要人人奉獻一點愛心，這股小（　　）就能匯集成巨大暖流。" },
+            { id: 327, lesson: 3, word: "涵度", pinyin: "ㄏㄢˊ ㄉㄨˋ", hint: "像巨大水庫能裝納所有不同意見的開闊度量", keyChar: "度 (氣度容量)", meaning: "氣度寬宏、包含容量之深廣。", example: "身為領導者要有包容不同意見的胸懷與（涵度）。", blankSentence: "面對逆耳的忠言，更顯得出一個人的大器與胸（　　）。" },
+            { id: 328, lesson: 3, word: "貼率", pinyin: "ㄊㄧㄝ ㄌㄩˋ", hint: "手機保護貼完美吻合螢幕邊角，絲毫不差的貼合度", keyChar: "貼 (切合貼近)", meaning: "切合實際的妥貼程度與達成率。", example: "這項規劃與學校實際需求的（貼率）非常高，深獲師生好評。", blankSentence: "這套教學軟體與課本進度的貼（　　）極佳，非常實用。" },
+            { id: 329, lesson: 3, word: "碑序", pinyin: "ㄅㄟ ㄒㄩˋ", hint: "刻在紀念石碑最開頭、記錄當年開拓故事的序文", keyChar: "序 (開端序文)", meaning: "刻在石碑上的序文。", example: "這篇古老的（碑序）記載了當年開拓墾荒的艱辛歷史。", blankSentence: "撫摸著古寺門口石碑上的（　　），讓人遙想建廟初期的盛況。" },
+            { id: 330, lesson: 3, word: "養老", pinyin: "ㄧㄤˇ ㄌㄠˇ", hint: "老爺爺退休後在鄉下小木屋種花種菜、曬太陽享清福", keyChar: "老 (晚年安度)", meaning: "年老退休後安度晚年。", example: "爺爺退休後在宜蘭買了農舍，過著清閒的（養老）生活。", blankSentence: "老爺爺在鄉間搭建了一棟小木屋，打算在此悠閒（　　）。" },
+            { id: 331, lesson: 3, word: "回報", pinyin: "ㄏㄨㄟˊ ㄅㄠˋ", hint: "長大後用自己的第一份打工薪水買禮物孝順媽媽", keyChar: "報 (報答反饋)", meaning: "將情況向上呈報；也指回饋報答恩惠。", example: "他用優異的學業表現，來（回報）父母辛勞的付出。", blankSentence: "長大後我們要懂得孝順父母，用心（　　）家人的養育深恩。" },
+            { id: 332, lesson: 3, word: "富麗堂皇", pinyin: "ㄈㄨˋ ㄌㄧˋ ㄊㄤˊ ㄏㄨㄤˊ", hint: "走進國王的金光皇宮，巨大水晶吊燈閃閃發光、氣派無比", keyChar: "堂皇 (盛大華美)", meaning: "形容建築物或擺設壯麗宏偉、氣派華貴。", example: "這座古代王宮裝飾得（富麗堂皇），四處金碧輝煌。", blankSentence: "參觀歐洲古堡時，大廳裡（　　　　）的水晶吊燈令人震撼。" },
+
+            // ================= 第 4 課（照片 4：32 詞） =================
+            { id: 401, lesson: 4, word: "秀眉", pinyin: "ㄒㄧㄡˋ ㄇㄟˊ", hint: "女孩臉上兩道彎彎長長、清秀又好看的眉毛", keyChar: "秀 (清秀端莊)", meaning: "秀麗漂亮的眉毛。", example: "姐姐有一雙明亮的大眼睛和一對清秀的（秀眉）。", blankSentence: "她微微蹙起（　　），似乎在思考一道困難的數學題。" },
+            { id: 402, lesson: 4, word: "孔雀", pinyin: "ㄎㄨㄥˇ ㄑㄩㄝˋ", hint: "動物園裡雄鳥嘩啦一聲展開像是巨大綠寶石羽毛大扇子", keyChar: "雀 (珍禽羽色)", meaning: "一種羽毛色彩極其艷麗的大型鳥類，雄鳥會開屏。", example: "動物園裡的（孔雀）展開了色彩斑斕的尾羽，引來遊客歡呼。", blankSentence: "動物園裡的雄（　　）展開華麗長尾，如同一把絢爛的羽扇。" },
+            { id: 403, lesson: 4, word: "胡亂", pinyin: "ㄏㄨˊ ㄌㄨㄢˋ", hint: "手拿蠟筆閉上眼睛在牆壁上隨意亂塗畫一通", keyChar: "胡 (隨意荒唐)", meaning: "毫無秩序、隨意隨便且不講道理。", example: "寫考卷要認真思考，不能憑感覺（胡亂）作答。", blankSentence: "做事情要有條有理，不能憑著性子（　　）亂搞。" },
+            { id: 404, lesson: 4, word: "沒轍", pinyin: "ㄇㄟˊ ㄓㄜˊ", hint: "車輪卡在爛泥裡轉動不了，攤開雙手完全沒辦法", keyChar: "轍 (車軌辦法)", meaning: "沒有辦法、無計可施。", example: "弟弟一耍起賴來躺在地上，連媽媽也拿他（沒轍）。", blankSentence: "遇到這輛老爺車突然在半路熄火，連修車師傅也暫時（　　）。" },
+            { id: 405, lesson: 4, word: "剪裁", pinyin: "ㄐㄧㄢˇ ㄘㄞˊ", hint: "裁縫師拿著大剪刀把長布料俐落喀嚓剪成合身背心", keyChar: "裁 (裁剪裁製)", meaning: "用剪刀裁割布料或紙張；也比喻對文章去蕪存菁。", example: "裁縫師運用巧手將布料（剪裁）得合身又好看。", blankSentence: "這件洋裝的（　　）十分合身俐落，展現出高雅氣質。" },
+            { id: 406, lesson: 4, word: "楚楚", pinyin: "ㄔㄨˇ ㄔㄨˇ", hint: "下雨天淋濕縮在牆角、眨著無辜大眼睛的可憐小幼貓", keyChar: "楚 (楚楚惹憐)", meaning: "鮮明整齊貌；常形容嬌弱動人的神態（如楚楚可憐）。", example: "雨中的小野花（楚楚）動人，散發淡淡幽香。", blankSentence: "這隻渾身淋濕的流浪小貓縮在牆角，模樣十分（　　）可憐。" },
+            { id: 407, lesson: 4, word: "有似", pinyin: "ㄧㄡˇ ㄙˋ", hint: "遠看那一排白雲，「就好像」一隻奔馳的小綿羊", keyChar: "似 (好像彷彿)", meaning: "有些相似、好像是這樣。", example: "遠山在煙雨濛濛中，（有似）一幅潑墨山水畫。", blankSentence: "水面上輕輕掠過的微波，（　　）絲綢般柔軟滑順。" },
+            { id: 408, lesson: 4, word: "抗拒", pinyin: "ㄎㄤˋ ㄐㄩˋ", hint: "香噴噴剛出爐的炸雞擺在眼前，肚子咕嚕咕嚕叫實在忍不住", keyChar: "拒 (拒絕抵擋)", meaning: "抵抗拒絕，不肯接受從服。", example: "面對熱騰騰的巧克力蛋糕，幾乎沒有人能夠（抗拒）它的誘惑。", blankSentence: "面對誘人的香脆炸雞，實在令人難以（　　）。" },
+            { id: 409, lesson: 4, word: "羞愧", pinyin: "ㄒㄧㄡ ㄎㄨㄟˋ", hint: "做錯事被當場發現，整張臉瞬間刷紅得像大番茄", keyChar: "愧 (內心愧咎)", meaning: "因為自覺做錯事或對不起人而感到難為情。", example: "得知自己不小心誤會了好友，他心裡感到無比（羞愧）。", blankSentence: "發現自己誤會了好友，他頓時面紅耳赤，深感（　　）。" },
+            { id: 410, lesson: 4, word: "頭密", pinyin: "ㄊㄡˊ ㄇㄧˋ", hint: "頭頂長滿密密麻麻、烏黑又濃密的細軟頭髮", keyChar: "密 (細密濃密)", meaning: "髮絲細密濃密或思維周密。", example: "剛出生的嬰兒滿（頭密）髮，非常可愛健康。", blankSentence: "妹妹有一頭烏黑（　　）髮，綁起辮子非常俏麗。" },
+            { id: 411, lesson: 4, word: "足麻", pinyin: "ㄗㄨˊ ㄇㄚˊ", hint: "蹲在地上打電動太久，猛然站起來兩腳像被成千上萬隻螞蟻咬", keyChar: "麻 (發麻刺痛)", meaning: "雙腳發麻、麻木不仁。", example: "蹲在地上看書太久，猛然站起來時頓時感到（足麻）站不穩。", blankSentence: "在榻榻米上跪坐太久，雙腿（　　），一時站不起來。" },
+            { id: 412, lesson: 4, word: "色目", pinyin: "ㄙㄜˋ ㄇㄨˋ", hint: "文具店架子上各種顏色、款式的原子筆應有盡有齊全", keyChar: "目 (品目名目)", meaning: "種類名目；或神情眼神。", example: "這家文具店的筆類品項繁多，（色目）齊全。", blankSentence: "市集裡擺滿了各色各樣、品項繁多的（　　）貨品。" },
+            { id: 413, lesson: 4, word: "雀躍", pinyin: "ㄑㄩㄝˋ ㄩㄝˋ", hint: "聽到去迪士尼玩，像麻雀一樣在客廳原地高高蹦跳歡呼", keyChar: "躍 (跳躍躍起)", meaning: "像麻雀般歡蹦亂跳，形容極為高興高亢的樣子。", example: "聽到明天不用補習改去遊樂園，大家高興得歡呼（雀躍）。", blankSentence: "聽到校長宣布全校去遊樂園校外教學，全場歡呼（　　）。" },
+            { id: 414, lesson: 4, word: "敗皮", pinyin: "ㄅㄞˋ ㄆㄧˊ", hint: "老樹幹上乾枯褪色、一片片剝落掉在地上的老樹皮", keyChar: "敗 (衰損剝落)", meaning: "脫落受損之皮革外皮或樹皮。", example: "老樹幹上剝落著層層（敗皮），正長出新芽。", blankSentence: "老橡樹幹上剝落的（　　），留下了歲月的刻痕。" },
+            { id: 415, lesson: 4, word: "前楚", pinyin: "ㄑㄧㄢˊ ㄔㄨˇ", hint: "跌倒擦破皮結痂後，已經忘掉先前的劇烈痛楚", keyChar: "楚 (痛楚悲痛)", meaning: "過去經歷的痛楚苦痛。", example: "走過生命的幽谷，他早已放下（前楚），迎向新生。", blankSentence: "撫平心中的（　　），他重新振作走向美好未來。" },
+            { id: 416, lesson: 4, word: "益無", pinyin: "ㄧˋ ㄨˊ", hint: "整天躺在沙發滑手機，對眼睛和功課「一點好處都沒有」", keyChar: "無 (完全沒有)", meaning: "完全沒有任何好處好處。", example: "整天沉迷於手遊而荒廢課業，對成長（益無）所獲。", blankSentence: "爭吵只會傷感情，對問題的解決（　　）實質助益。" },
+            { id: 417, lesson: 4, word: "傳開", pinyin: "ㄔㄨㄢˊ ㄎㄞ", hint: "下課十分鐘內，全班甚至隔壁班都聽到了得獎的好消息", keyChar: "開 (傳播擴散)", meaning: "消息或名聲在人群中傳播開來。", example: "他獲得國際鋼琴大賽首獎的好消息很快在校園（傳開）了。", blankSentence: "這項振奮人心的捷報，在一瞬間便（　　）了整個社區。" },
+            { id: 418, lesson: 4, word: "打塗", pinyin: "ㄉㄚˇ ㄊㄨˊ", hint: "拿油漆刷沾上亮光漆，一層一層均勻刷在木桌子上", keyChar: "塗 (粉刷塗抹)", meaning: "塗抹粉刷修飾之工法動作。", example: "工匠細心地在木雕上進行（打塗）防護漆。", blankSentence: "畫家拿起刷子在畫布上均勻（　　），調出深藍色基底。" },
+            { id: 419, lesson: 4, word: "草綠", pinyin: "ㄘㄠˇ ㄌㄩˋ", hint: "春天草地上剛探出頭來嫩油油的小青草顏色", keyChar: "綠 (嫩草翠色)", meaning: "像嫩草般青翠清新的綠色。", example: "春天的大地換上了一襲（草綠）色的新衣裳。", blankSentence: "春天的大草原鋪上了一層（　　）色柔軟地毯。" },
+            { id: 420, lesson: 4, word: "無議", pinyin: "ㄨˊ ㄧˋ", hint: "班長表現超級棒，大家全部舉手贊成，沒有任何人反對", keyChar: "議 (異議爭執)", meaning: "毫無異議、無可爭議。", example: "他是全場表現最優異的球員，獲選MVP實至名歸，眾人（無議）。", blankSentence: "全班一致通過推選班長，大家毫（　　）異同聲讚許。" },
+            { id: 421, lesson: 4, word: "屏漆", pinyin: "ㄆㄧㄥˊ ㄑㄧ", hint: "古色古香的屏風上面塗著一層黑得發亮的保護漆", keyChar: "漆 (塗漆漆料)", meaning: "漆在屏風或遮板上的塗漆漆料。", example: "這道古董（屏漆）光亮細膩，圖案雕工非凡。", blankSentence: "這扇古色古香的屏風上，保留著精細的（　　）工藝。" },
+            { id: 422, lesson: 4, word: "茶地", pinyin: "ㄔㄚˊ ㄉㄧˋ", hint: "阿里山上像梯田一樣一層層綠油油、飄著清香的茶園", keyChar: "茶 (茶樹茶園)", meaning: "種植茶樹的茶園梯田土地。", example: "走進阿里山的（茶地），空氣中飄散著陣陣清新的茶香。", blankSentence: "丘陵地上一整片翠綠的（　　），是茶農辛勤耕耘的心血。" },
+            { id: 423, lesson: 4, word: "歌益", pinyin: "ㄍㄜ ㄧˋ", hint: "放學跟朋友大聲合唱卡通主題曲，壓力和煩惱全跑光", keyChar: "益 (好處裨益)", meaning: "唱歌吟誦帶來身心放鬆之益處。", example: "音樂能陶冶性情，唱歌更能抒發情緒，誠乃（歌益）良多。", blankSentence: "課後合唱練習能放鬆緊繃的大腦，達到歡（　　）之功。" },
+            { id: 424, lesson: 4, word: "人性", pinyin: "ㄖㄣˊ ㄒㄧㄥˋ", hint: "看到跌倒的小弟弟主動跑過去扶他起來的那份善良天性", keyChar: "性 (天生本質)", meaning: "人所具有的善良天性與本質特質。", example: "在災難發生時互相扶持救援，展現了最溫暖純真的（人性）。", blankSentence: "在危難時刻展現出的無私互助，閃耀著（　　）的光輝。" },
+            { id: 425, lesson: 4, word: "山牆", pinyin: "ㄕㄢ ㄑㄧㄤˊ", hint: "傳統三合院兩側像一座小山形狀的三角形紅磚牆屋頂", keyChar: "山 (山形山尖)", meaning: "傳統建築兩側狀如山形頂部的磚石牆壁。", example: "這棟閩南式傳統三合院的（山牆）有著美麗的馬背造型。", blankSentence: "漫步在鹿港老街，可以看到古樸別緻的燕尾與（　　）建築。" },
+            { id: 426, lesson: 4, word: "橡批", pinyin: "ㄒㄧㄤˋ ㄆㄧ", hint: "工廠整批運進來、木質紋理非常厚實耐用的橡木板材", keyChar: "橡 (堅固橡木)", meaning: "批製橡膠或橡木之材料工藝。", example: "工廠進口了一批高級的（橡批）木料來製作書桌。", blankSentence: "這批頂級的（　　）板材，紋理非常扎實細緻。" },
+            { id: 427, lesson: 4, word: "偷俊", pinyin: "ㄊㄡ ㄐㄩㄣˋ", hint: "小松鼠眨眨大眼睛、動作輕快機靈，暗暗透出一股可愛帥氣", keyChar: "俊 (英挺俏皮)", meaning: "暗自英挺俊俏、神態機靈巧妙。", example: "這隻頑皮的小松鼠身形靈活、（偷俊）討喜，逗得大家開懷大笑。", blankSentence: "這隻毛茸茸的小松鼠動作矯健，模樣極其俏皮（　　）。" },
+            { id: 428, lesson: 4, word: "面問", pinyin: "ㄇㄧㄢˋ ㄨㄣˋ", hint: "拿著不會寫的數學題，親自跑到老師桌子前當面請教", keyChar: "面 (當面面對)", meaning: "當面親自垂詢問候、交流請教。", example: "對於不懂的數學難題，直接找老師（面問）最清楚了。", blankSentence: "有任何學業上的疑難，不妨直接前往辦公室向老師（　　）。" },
+            { id: 429, lesson: 4, word: "大面", pinyin: "ㄉㄚˋ ㄇㄧㄢˋ", hint: "客廳安裝了整面從天花板到地板的大落地窗，視野超大", keyChar: "面 (寬闊面積)", meaning: "大面積、大格局寬廣之版面。", example: "客廳安裝了（大面）的落地窗，採光非常明亮通風。", blankSentence: "這棟大樓擁有整棟（　　）落地玻璃，視野非常遼闊。" },
+            { id: 430, lesson: 4, word: "童言", pinyin: "ㄊㄨㄥˊ ㄧㄢˊ", hint: "小弟弟指著天空大喊：看！棉花糖在飛！那種無邪童趣的話", keyChar: "童 (孩童純真)", meaning: "小孩子天真無邪所說出的純真話語。", example: "弟弟天真無邪的（童言）童語，逗得全家人哈哈大笑。", blankSentence: "弟弟說天上的雲是棉花糖，這番天真的（　　）童語十分討喜。" },
+            { id: 431, lesson: 4, word: "七零", pinyin: "ㄑㄧ ㄌㄧㄥˊ", hint: "一陣大強風吹過來，把庭院的塑膠花盆吹得東倒西歪、散落一地", keyChar: "零 (零散破碎)", meaning: "零零落落、破碎殘缺（如七零八落）。", example: "強風將院子裡的盆栽吹得（七零）八落。", blankSentence: "一陣狂風過後，庭院裡的落葉被吹得（　　）八落。" },
+            { id: 432, lesson: 4, word: "脈壁", pinyin: "ㄇㄞˋ ㄅㄧˋ", hint: "大峽谷陡峭岩石上，一條條像青筋般突出的岩層紋理", keyChar: "脈 (石紋經絡)", meaning: "山脈岩壁如同血脈般紋理縱橫的山體石壁。", example: "攀岩隊員攀爬在險峻陡峭的（脈壁）上，勇氣可嘉。", blankSentence: "地質學家沿著陡峭的（　　）仔細研究千萬年形成的地層構造。" },
+
+            // ================= 第 5 課（照片 5：32 詞） =================
+            { id: 501, lesson: 5, word: "俯視", pinyin: "ㄈㄨˇ ㄕˋ", hint: "站在101觀景台往下低頭看，底下汽車像小火柴盒", keyChar: "俯 (低頭向下)", meaning: "從高處往下看（俯瞰）。", example: "站在台北101觀景台（俯視）市區，車輛小得像積木一樣。", blankSentence: "站在高聳的山頂上往下（　　），農田就像整齊的棋盤。" },
+            { id: 502, lesson: 5, word: "乳臭未乾", pinyin: "ㄖㄨˇ ㄒㄧㄡˋ ㄨㄟˋ ㄍㄢ", hint: "身上喝牛奶的奶香味都還沒乾，比喻經驗不足的小毛頭", keyChar: "臭 (氣味奶味)", meaning: "形容人年紀還小、缺乏歷練經驗，不夠成熟。", example: "別看他年紀輕，做事沉穩幹練，可不是（乳臭未乾）的毛頭小子。", blankSentence: "別看他年紀輕，做起事來沉著冷靜，絕非（　　　　）之輩。" },
+            { id: 503, lesson: 5, word: "殊樂", pinyin: "ㄕㄨ ㄌㄜˋ", hint: "在安靜森林小木屋一邊烤棉花糖一邊看書的特別樂趣", keyChar: "殊 (特別不同)", meaning: "非凡特別的快樂與樂趣。", example: "假日遠離塵囂在山中品茗讀書，自有一番（殊樂）。", blankSentence: "在靜謐的午後讀一本好書，自有一番別樣的（　　）。" },
+            { id: 504, lesson: 5, word: "交接", pinyin: "ㄐㄧㄠ ㄐㄧㄝ", hint: "大隊接力第四棒把接力棒穩穩遞交到第五棒手中", keyChar: "接 (交付銜接)", meaning: "工作或物品互相交付移轉交接清楚。", example: "舊任班長與新任班長在講台上認真進行職務（交接）。", blankSentence: "春夏（　　）之際天氣變化多端，出門記得帶把雨傘。" },
+            { id: 505, lesson: 5, word: "採摘", pinyin: "ㄘㄞˇ ㄓㄞ", hint: "提著小竹籃在草莓園裡輕輕摘下紅透的大草莓", keyChar: "摘 (動手摘取)", meaning: "摘取果實、花朵或茶葉。", example: "假日我們全家去大湖的果園體驗（採摘）草莓的樂趣。", blankSentence: "秋天是收穫的季節，果農們忙著在果園裡（　　）香甜的蘋果。" },
+            { id: 506, lesson: 5, word: "裂縫", pinyin: "ㄌㄧㄝˋ ㄈㄥˋ", hint: "地震劇烈搖晃後，水泥白牆上撕開的一條長長細紋", keyChar: "縫 (裂開縫隙)", meaning: "物體表面裂開形成的細長縫隙。", example: "大地震過後，水泥牆壁上出現了幾道細微的（裂縫）。", blankSentence: "經過強震搖晃，老房子的外牆被震出了一道長長的（　　）。" },
+            { id: 507, lesson: 5, word: "傾禮", pinyin: "ㄑㄧㄥ ㄌㄧˇ", hint: "彎腰九十度深深鞠躬，表示內心最深最誠敬的敬佩", keyChar: "傾 (傾心致敬)", meaning: "傾心尊崇、以極高敬意行禮待客。", example: "面對德高望重的學者，大家無不肅然（傾禮）。", blankSentence: "全體國民對抗疫英雄們致上最高的（　　）與感謝。" },
+            { id: 508, lesson: 5, word: "演奏", pinyin: "ㄧㄢˇ ㄗㄡˋ", hint: "小提琴手拉動琴弓，流淌出美妙動人的交響樂旋律", keyChar: "奏 (吹拉彈奏)", meaning: "用樂器表演音樂旋律。", example: "國家交響樂團在音樂廳裡（演奏）出扣人心弦的樂章。", blankSentence: "音樂家在舞台上深情地（　　）著貝多芬的命運交響曲。" },
+            { id: 509, lesson: 5, word: "漆電", pinyin: "ㄑㄧ ㄉㄧㄢˋ", hint: "伸手不見五指的漆黑烏雲夜空，突然撕裂開一道刺眼強光閃電", keyChar: "電 (夜空閃電)", meaning: "漆黑夜空中劃過的耀眼閃電。", example: "烏雲密布的（漆電）之夜，狂風暴雨呼嘯而來。", blankSentence: "在狂風暴雨的暗夜裡，一道（　　）瞬間照亮了整座天際。" },
+            { id: 510, lesson: 5, word: "遙列", pinyin: "ㄧㄠˊ ㄌㄧㄝˋ", hint: "站在平原上看天邊連綿不絕、排成整齊一線的遠山山頭", keyChar: "遙 (遠方排列)", meaning: "遠遠整齊排列在遠方的隊伍景象。", example: "群山（遙列）在天邊，與蔚藍的天空連成一片壯麗風景。", blankSentence: "遠處山頭一座座（　　），在晨曦照耀下宛如仙境。" },
+            { id: 511, lesson: 5, word: "造物", pinyin: "ㄗㄠˋ ㄨˋ", hint: "神奇無比的大自然老天爺，打造出壯麗山川的奇蹟巧手", keyChar: "造 (創造萬物)", meaning: "創造宇宙萬物自然的大力量（如造物者）。", example: "大自然的鬼斧神工，真讓人驚嘆（造物）者的神奇巧思。", blankSentence: "面對大自然雄奇秀麗的鬼斧神工，不禁讚嘆（　　）的神奇力量。" },
+            { id: 512, lesson: 5, word: "眺隊", pinyin: "ㄊㄧㄠˋ ㄉㄨㄟˋ", hint: "手搭涼棚站在山崗上，眺望遠方正蜿蜒前進的登山隊伍", keyChar: "眺 (望向遠處)", meaning: "向遠處眺望前進的隊伍。", example: "登上高崗（眺隊）伍蜿蜒前進，旗幟迎風飄揚。", blankSentence: "將軍站在山頭（　　），指揮前鋒部隊依序向前。" },
+            { id: 513, lesson: 5, word: "透腦", pinyin: "ㄊㄡˋ ㄋㄠˇ", hint: "大熱天含下一顆超涼勁爆薄荷糖，涼意直接直通天靈蓋", keyChar: "透 (穿透腦海)", meaning: "清澈穿透腦海，形容香氣或涼意使人神清氣爽。", example: "含下一顆清涼薄荷糖，一陣（透腦）的涼意頓時驅散了睡意。", blankSentence: "清晨吸一口深山清新的芬多精，令人感到無比沁涼（　　）。" },
+            { id: 514, lesson: 5, word: "技家", pinyin: "ㄐㄧˋ ㄐㄧㄚ", hint: "手藝磨練了幾十年的老木雕國寶大師，技藝登峰造極", keyChar: "家 (專門名家)", meaning: "專門掌握某項高超技能或藝術的專家巨匠。", example: "這位老陶藝（技家）手藝純熟，拉胚技藝已臻化境。", blankSentence: "他在雕刻領域深耕數十年，成了名聞遐邇的傳統木雕（　　）。" },
+            { id: 515, lesson: 5, word: "噴間", pinyin: "ㄆㄣ ㄐㄧㄢ", hint: "地熱谷的白色溫泉水柱定時從岩石裂縫中高高噴發出來", keyChar: "噴 (噴湧衝出)", meaning: "泉水噴湧噴發於岩石林木之間。", example: "溫泉在岩石（噴間）湧出白濛濛的蒸氣，景色宜人。", blankSentence: "間歇泉在石塊（　　）定時噴湧出高聳的水柱，非常壯觀。" },
+            { id: 516, lesson: 5, word: "泉斷", pinyin: "ㄑㄩㄢˊ ㄉㄨㄢˋ", hint: "太久沒下雨，原本嘩啦啦的山泉水龍頭突然滴不出一滴水", keyChar: "斷 (枯竭中斷)", meaning: "泉水乾涸枯竭中斷流動。", example: "連續數月沒有降雨，山上的甘泉面臨（泉斷）的危機。", blankSentence: "乾旱持續未解，原本終年流動的山澗竟然發生了（　　）現象。" },
+            { id: 517, lesson: 5, word: "乾涸", pinyin: "ㄍㄢ ㄏㄜˊ", hint: "池塘的水全蒸發乾了，泥土裂開像一塊塊龜殼花紋", keyChar: "涸 (乾涸枯乾)", meaning: "河川、池塘或水源乾枯無水。", example: "酷熱的大旱讓池塘見底，土地甚至（乾涸）龜裂了。", blankSentence: "幾個月未曾下雨，水庫水位直直掉，河床早已（　　）見底。" },
+            { id: 518, lesson: 5, word: "黑嘴", pinyin: "ㄏㄟ ㄗㄨㄟˇ", hint: "珍貴神話之鳥燕鷗嘴巴尖端有一截像沾到黑色墨水", keyChar: "嘴 (黑喙特徵)", meaning: "嘴喙呈黑色（常見於黑嘴端鳳頭燕鷗等珍稀鳥類）。", example: "（黑嘴）端鳳頭燕鷗數量極為稀少，被譽為神話之鳥。", blankSentence: "馬祖列島是稀有鳥類「（　　）端鳳頭燕鷗」的重要棲息繁殖地。" },
+            { id: 519, lesson: 5, word: "眩暈", pinyin: "ㄒㄩㄢˋ ㄩㄣˋ", hint: "在太陽下連續旋轉十圈，停下來眼前金星亂冒天旋地轉", keyChar: "暈 (頭昏眼花)", meaning: "頭暈目眩、眼睛昏花，感到眼前天旋地轉。", example: "在烈日下曝曬太久容易中暑，甚至產生（眩暈）無力。", blankSentence: "長時間低頭看手機，抬起頭時容易感到一陣（　　）。" },
+            { id: 520, lesson: 5, word: "端鳳", pinyin: "ㄉㄨㄢ ㄈㄥˋ", hint: "頭頂羽毛高高冠起，神氣得像傳說中尊貴的鳳凰王冠", keyChar: "鳳 (華麗羽冠)", meaning: "鳥頭端如鳳凰般擁有美麗羽冠。", example: "黑嘴（端鳳）頭燕鷗展翅翱翔於天際，身姿十分優雅。", blankSentence: "這種海鳥頂部帶有黑色的冠羽，宛如頭戴（　　）冠般華麗。" },
+            { id: 521, lesson: 5, word: "一行", pinyin: "ㄧ ㄒㄧㄥˊ", hint: "考察團大家排成一整隊整齊出發登機", keyChar: "行 (成行成列)", meaning: "同行的一群人；或排成單獨一列。", example: "考察團（一行）十餘人今天搭機前往日本參訪交流。", blankSentence: "登山隊（　　）人整裝出發，準備挑戰攀登玉山主峰。" },
+            { id: 522, lesson: 5, word: "情害", pinyin: "ㄑㄧㄥˊ ㄏㄞˋ", hint: "因為偏袒好朋友而打破班級規則，反而惹禍上身傷害公理", keyChar: "害 (私情妨害)", meaning: "心情受損或因過度情感用事而受傷害。", example: "待人處事要有原則，不可因私（情害）公法。", blankSentence: "處理公務必須公正客觀，絕不能因私（　　）公。" },
+            { id: 523, lesson: 5, word: "看關", pinyin: "ㄎㄢˋ ㄍㄨㄢ", hint: "古代衛兵手拿長槍在重要城門關口嚴厲站哨看守", keyChar: "關 (重要隘口)", meaning: "審視守護重要關隘樞紐。", example: "邊防將士不分晝夜在隘口（看關）巡邏，保衛國家安全。", blankSentence: "守衛士兵神情嚴肅地在城門（　　）守，嚴查出入人員。" },
+            { id: 524, lesson: 5, word: "燕鷗", pinyin: "ㄧㄢˋ ㄡ", hint: "身型像燕子般靈活、翅膀尖長在海面上高速俯衝抓魚的白色海鳥", keyChar: "鷗 (飛翔海鳥)", meaning: "一種體態優雅、翅膀修長的海鳥。", example: "成群結隊的（燕鷗）在蔚藍的海面上展翅滑翔俯衝捕魚。", blankSentence: "夕陽西下，成群的（　　）在平靜的海面上盤旋翻飛。" },
+            { id: 525, lesson: 5, word: "炫耀", pinyin: "ㄒㄩㄢˋ ㄧㄠˋ", hint: "手裡拿著新球鞋一直擺在別人眼前大聲說：你看帥不帥！", keyChar: "炫 (誇示張揚)", meaning: "誇耀張揚自己的長處、財富或才能。", example: "有真才實學的人性情往往謙虛，從不隨意向人（炫耀）。", blankSentence: "他為人謙虛低調，有了優異的成績也絕不隨便向同學（　　）。" },
+            { id: 526, lesson: 5, word: "嘴炫", pinyin: "ㄗㄨㄟˇ ㄒㄩㄢˋ", hint: "公鳥嘴喙顏色超級鮮豔反光，像抹了螢光漆一樣奪目", keyChar: "炫 (目眩耀眼)", meaning: "嘴喙炫目顯眼、光彩奪目。", example: "公鳥長著一副五彩鮮豔的（嘴炫），用來吸引母鳥注意。", blankSentence: "雄鳥鮮豔奪目的（　　）羽毛，是求偶季節最美麗的招牌。" },
+            { id: 527, lesson: 5, word: "懸殊", pinyin: "ㄒㄩㄢˊ ㄕㄨ", hint: "職籃巨人跟幼稚園小弟弟比身高，差距像隔了一座大懸崖", keyChar: "殊 (差距極大)", meaning: "彼此相差非常遙遠，差距極大。", example: "兩隊球員身型與經驗（懸殊），勝負很快就分曉了。", blankSentence: "兩隊實力過於（　　），比分從第一節就被大幅拉開了。" },
+            { id: 528, lesson: 5, word: "漲條", pinyin: "ㄓㄤˇ ㄊㄧㄠˊ", hint: "潮水猛烈上漲，把原本露出的長條狀沙灘全部淹過去", keyChar: "漲 (潮水高漲)", meaning: "水勢上漲漫過沙洲長條邊緣。", example: "大潮來襲時溪水暴（漲條）理分明的石灘全被淹沒了。", blankSentence: "春雨綿綿使得河水暴（　　），淹過了原本露出的河灘地。" },
+            { id: 529, lesson: 5, word: "利嘴", pinyin: "ㄌㄧˋ ㄗㄨㄟˇ", hint: "老鷹像鋒利鐵鉤般的彎曲尖嘴，一啄就抓起魚", keyChar: "利 (鋒利尖銳)", meaning: "鋒利無比的尖喙；或指說話銳利尖刻。", example: "老鷹憑著銳利的雙眼與（利嘴），在空中敏捷地捕捉獵物。", blankSentence: "翠鳥憑藉著一雙像箭一般尖銳的（　　），精準俯衝抓魚。" },
+            { id: 530, lesson: 5, word: "頭成", pinyin: "ㄊㄡˊ ㄔㄥˊ", hint: "班長帶頭第一個往前衝，帶著大家順利拿到第一名成果", keyChar: "頭 (牽頭帶頭)", meaning: "帶頭領先取得成果成就。", example: "在班長的帶（頭成）功發起下，全班順利完成跳蚤市場籌備。", blankSentence: "只要由隊長帶（　　），大夥兒同心協力一定能旗開得勝。" },
+            { id: 531, lesson: 5, word: "就燕", pinyin: "ㄐㄧㄡˋ ㄧㄢˋ", hint: "夕陽西下，成千上萬隻燕子整齊飛回屋簷下鳥窩安睡", keyChar: "燕 (燕群歸巢)", meaning: "隨群燕返巢棲息歸隊。", example: "黃昏時分，群鳥紛紛（就燕）巢而息。", blankSentence: "晚霞滿天，倦鳥紛紛（　　）歸巢休息。" },
+            { id: 532, lesson: 5, word: "陶醉", pinyin: "ㄊㄠˊ ㄗㄨㄟˋ", hint: "閉著眼睛聽著好聽的古典音樂，舒服得整個人像在雲端飄浮", keyChar: "醉 (沉醉沉迷)", meaning: "深深沉浸在某種美妙美好的氛圍情境中。", example: "聽著優美的交響樂演奏，聽眾們全體（陶醉）其中。", blankSentence: "漫步在盛開的薰衣草花田裡，迷人的花香令人深深（　　）。" },
+
+            // ================= 第 6 課（照片 6：新增 32 詞） =================
+            { id: 601, lesson: 6, word: "誇耀", pinyin: "ㄎㄨㄚ ㄧㄠˋ", hint: "拿著一百分考卷站在椅子上揮舞大喊：全班只有我會！", keyChar: "誇 (自我誇大)", meaning: "向人炫耀、自誇自己的本領或長處。", example: "真正有實力的人往往謙虛低調，從不對人（誇耀）。", blankSentence: "即使成績優異，他也從不主動向同學（　　）。" },
+            { id: 602, lesson: 6, word: "沈默", pinyin: "ㄔㄣˊ ㄇㄛˋ", hint: "用拉鍊把嘴巴緊緊拉上，安靜得連一根針掉在地板都能聽見", keyChar: "默 (安靜不語)", meaning: "不說話、安靜無聲。", example: "面對大家的質疑，他選擇保持（沈默），靜觀其變。", blankSentence: "圖書館裡大家都在專心閱讀，全場保持一片（　　）。" },
+            { id: 603, lesson: 6, word: "推蹲", pinyin: "ㄊㄨㄟ ㄉㄨㄣ", hint: "拔河時全隊把身體重心用力往下蹲低、全力往後拉推", keyChar: "蹲 (屈膝蓄力)", meaning: "推擠並蹲下蓄力之肢體動作。", example: "拔河比賽中隊員們（推蹲）著身軀，全力以赴。", blankSentence: "運動員在起跑線上（　　）身子，準備一躍而起。" },
+            { id: 604, lesson: 6, word: "搖擺", pinyin: "ㄧㄠˊ ㄅㄞˇ", hint: "微風吹過金色稻田，稻穗像小精靈一樣左右輕輕晃動", keyChar: "擺 (左右擺動)", meaning: "向左右兩側搖晃晃動。", example: "微風吹過，稻田裡的金色稻穗隨風輕輕（搖擺）。", blankSentence: "風鈴在走廊下輕快地隨風（　　），發出清脆聲響。" },
+            { id: 605, lesson: 6, word: "召華", pinyin: "ㄓㄠ ㄏㄨㄚˊ", hint: "國王吹響金色號角，召集王國所有最優秀華麗的騎士前來", keyChar: "華 (盛大璀璨)", meaning: "召集璀璨美好的事物人才。", example: "學校（召華）麗盛大的校慶文藝晚會，吸引許多家長參與。", blankSentence: "文創市集（　　）了各路手作名家，熱鬧非凡。" },
+            { id: 606, lesson: 6, word: "深刻", pinyin: "ㄕㄣ ㄎㄜˋ", hint: "用刻刀在木頭上深深刻下一道印記，一輩子都忘不掉", keyChar: "刻 (深刻入心)", meaning: "感受或印記極為深入、難以忘懷。", example: "這趟充實的自然生態之旅，給我們留下了（深刻）的印象。", blankSentence: "老師這番發人深省的勉勵，在他心中留下了（　　）的印記。" },
+            { id: 607, lesson: 6, word: "流血", pinyin: "ㄌㄧㄡˊ ㄒㄧㄝˇ", hint: "跑步跌倒膝蓋擦破皮，紅紅的血珠滲了出來", keyChar: "血 (受傷滲血)", meaning: "身體受傷流出血液；比喻付出極大犧牲。", example: "運動時要多加留意安全，避免摔倒（流血）。", blankSentence: "跌倒擦破了膝蓋，護理師細心地幫他清洗（　　）的傷口。" },
+            { id: 608, lesson: 6, word: "呼喚", pinyin: "ㄏㄨ ㄏㄨㄢˋ", hint: "天黑了媽媽站在陽台雙手圈在嘴邊大喊：回家吃晚飯囉！", keyChar: "喚 (召喚呼喊)", meaning: "大聲呼叫、召喚引領。", example: "聽見母親溫柔的（呼喚），在院子裡玩耍的孩子立刻跑回家。", blankSentence: "清晨的微風彷彿是大自然的（　　），引領我們走向山林。" },
+            { id: 609, lesson: 6, word: "自露", pinyin: "ㄗˋ ㄌㄨˋ", hint: "不用刻意裝模作樣，舉手投足自然散發出自信的笑容", keyChar: "露 (顯露展現)", meaning: "自然展露顯露。", example: "這幅水彩畫中（自露）出一股純樸清新的鄉村氣息。", blankSentence: "他言談之間（　　）出一種優雅的自信神采。" },
+            { id: 610, lesson: 6, word: "穗越", pinyin: "ㄙㄨㄟˋ ㄩㄝˋ", hint: "秋天到了稻穗又大又重壓彎了腰，呈現大豐收", keyChar: "穗 (飽滿稻穗)", meaning: "稻穗豐碩飽滿跨越豐收之貌。", example: "秋天的田野裡（穗越）金黃，呈現豐收景象。", blankSentence: "稻田裡的麥穗顆顆飽滿，（　　）顯示今年風調雨順。" },
+            { id: 611, lesson: 6, word: "沉浸", pinyin: "ㄔㄣˊ ㄐㄧㄣˋ", hint: "像整個人泡在舒服溫暖的泡泡浴缸裡，完全融入書本世界", keyChar: "浸 (浸潤投入)", meaning: "深深沉醉在某種境界氛圍或水池中。", example: "全班同學都（沉浸）在動人的故事世界裡，聽得津津有味。", blankSentence: "假日時泡一杯熱可可（　　）在書海中，是一大享受。" },
+            { id: 612, lesson: 6, word: "心馬", pinyin: "ㄒㄧㄣ ㄇㄚˇ", hint: "心像野馬一樣在草原上脫韁亂跑，上課恍神胡思亂想", keyChar: "馬 (奔馳不定)", meaning: "心思如奔馳的野馬（如心猿意馬），比喻心神不定。", example: "上課時要專心聽講，切莫（心馬）奔馳、胡思亂想。", blankSentence: "做作業時如果（　　）意馬，往往要花雙倍時間才能寫完。" },
+            { id: 613, lesson: 6, word: "晃開", pinyin: "ㄏㄨㄤˋ ㄎㄞ", hint: "小鴨子跳進平靜的水池，波紋一圈一圈向外搖晃散開", keyChar: "晃 (蕩開晃動)", meaning: "搖晃擺盪開來。", example: "小木舟在湖心輕輕（晃開）了一圈圈美麗的水波。", blankSentence: "微風掠過湖面，輕輕（　　）層層碧波漣漪。" },
+            { id: 614, lesson: 6, word: "開麗", pinyin: "ㄎㄞ ㄌㄧˋ", hint: "春天一到，花園裡幾百朵紅的粉的花朵同時盛開、絢麗極了", keyChar: "麗 (美麗絢麗)", meaning: "花朵綻放開展得十分絢麗。", example: "陽明山上的杜鵑花盛（開麗）景，美不勝收。", blankSentence: "花園裡百花爭豔，競相盛（　　），引來蜜蜂翩翩起舞。" },
+            { id: 615, lesson: 6, word: "不流", pinyin: "ㄅㄨˋ ㄌㄧㄡˊ", hint: "像大礁石一樣穩穩立在急流中，不跟著別人盲目隨波逐流", keyChar: "流 (隨波漂流)", meaning: "水流不暢；亦指堅守原則不隨波逐流。", example: "為人處事要有獨立思辨的能力，（不流）於俗套偏見。", blankSentence: "我們要懂得擇善固執，（　　）於隨波逐流。" },
+            { id: 616, lesson: 6, word: "乎顧", pinyin: "ㄏㄨ ㄍㄨˋ", hint: "下西洋棋走一步之前，先把整張棋盤每個角落都仔細看過一遍", keyChar: "顧 (關照顧及)", meaning: "瞻前顧後、眷顧考量。", example: "做事要通盤考慮、（乎顧）周全，不可顧此失彼。", blankSentence: "做決策時要全面（　　）全局，不可草率行事。" },
+            { id: 617, lesson: 6, word: "出花", pinyin: "ㄔㄨ ㄏㄨㄚ", hint: "細心澆水的小盆栽，枝頭終於探出粉嫩可愛的小花苞", keyChar: "出 (抽出綻放)", meaning: "植物抽出花蕾、綻放花朵。", example: "陽台上的蘭花細心照料下終於（出花）了，花香四溢。", blankSentence: "春天一到，滿園的櫻花競相吐蕊（　　），十分喜人。" },
+            { id: 618, lesson: 6, word: "丁其", pinyin: "ㄉㄧㄥ ㄑㄧˊ", hint: "修手錶時拿著小鑷子，把最細小的一顆螺絲釘鎖在特定位置", keyChar: "丁 (特定細部)", meaning: "指某一特定細節或局部環節。", example: "這項科學實驗極為精密，必須（丁其）細微之處嚴加把關。", blankSentence: "維修鐘錶講求細心，每個零件皆要（　　）位置安放妥當。" },
+            { id: 619, lesson: 6, word: "置步", pinyin: "ㄓˋ ㄅㄨˋ", hint: "走進古老神秘的城堡庭園，忍不住停下腳步東看西看", keyChar: "步 (安步佇足)", meaning: "安放腳步、駐足停留或邁出步伐。", example: "漫步在古色古香的老街上，令人忍不住（置步）流連。", blankSentence: "美景如畫的湖畔，吸引了許多遊客（　　）欣賞。" },
+            { id: 620, lesson: 6, word: "橫會", pinyin: "ㄏㄥˊ ㄏㄨㄟˋ", hint: "兩條大河或兩條高鐵鐵軌像十字路口一樣在平原中央交匯", keyChar: "會 (交匯融合)", meaning: "橫向交匯交融。", example: "東西方文化在這座國際城市裡（橫會）共融，百花齊放。", blankSentence: "這條交通幹道與多條鐵路（　　），交通四通八達。" },
+            { id: 621, lesson: 6, word: "亮容", pinyin: "ㄌㄧㄤˋ ㄖㄨㄥˊ", hint: "運動流完汗洗把臉，臉蛋紅潤健康、神采飛揚的明亮面容", keyChar: "容 (明亮面容)", meaning: "明亮開朗、容光煥發的神采。", example: "聽到自己得獎的好消息，她臉上立刻綻放出（亮容）。", blankSentence: "清晨運動完後，每位長輩臉上都充滿了健康的（　　）。" },
+            { id: 622, lesson: 6, word: "成意", pinyin: "ㄔㄥˊ ㄧˋ", hint: "雙手捧著自己花三個小時用心剪貼的小卡片，滿滿的心意", keyChar: "意 (真誠心願)", meaning: "真摯懇切的心意；亦指達成心願。", example: "這份親手製作的卡片雖然樸素，卻滿載著我的（成意）。", blankSentence: "送禮物不在貴重與否，貴在誠懇真實的（　　）。" },
+            { id: 623, lesson: 6, word: "不跨", pinyin: "ㄅㄨˋ ㄎㄨㄚˋ", hint: "排隊進教室腳步規矩踩在線內，絕對不隨便越線推擠", keyChar: "跨 (跨越越位)", meaning: "不越位跨界、謹守本分規矩。", example: "在圖書館內要保持安靜，言行舉止（不跨）越界線規矩。", blankSentence: "行車要遵守標線規範，（　　）越雙黃線以確保安全。" },
+            { id: 624, lesson: 6, word: "破棋", pinyin: "ㄆㄛˋ ㄑㄧˊ", hint: "下圍棋快輸時靈機一動，下出打破敵軍包圍的神仙妙手", keyChar: "破 (打破僵局)", meaning: "下棋時打破僵局的妙著險招。", example: "在圍棋對局關鍵時刻，他下出了一記精妙的（破棋）扭轉局勢。", blankSentence: "面對膠著的棋局，棋聖靈光一閃走出了一著精彩的（　　）。" },
+            { id: 625, lesson: 6, word: "風國", pinyin: "ㄈㄥ ㄍㄨㄛˊ", hint: "搭飛機到不同國家，看當地的特色風車、品嚐傳統美食", keyChar: "國 (風土民風)", meaning: "國家之風氣與人文景致。", example: "走訪歐洲各國，體驗不同國度的歷史文化與（風國）人情。", blankSentence: "旅遊節目帶領觀眾深入了解世界各地的風土（　　）情。" },
+            { id: 626, lesson: 6, word: "中腹", pinyin: "ㄓㄨㄥ ㄈㄨˋ", hint: "像人體的肚子中央一樣，是整塊陸地最繁榮的核心地帶", keyChar: "腹 (核心腹地)", meaning: "地理區域的正中心核心腹地。", example: "這座國家公園坐落於島嶼的（中腹）地帶，生態資源極為豐富。", blankSentence: "此地居於交通（　　），是商業物流極為繁榮的中心。" },
+            { id: 627, lesson: 6, word: "行議", pinyin: "ㄒㄧㄥˊ ㄧˋ", hint: "童軍露營前大家圍成一圈，拿筆討論野炊與搭帳篷的分工行動", keyChar: "議 (會議商議)", meaning: "研擬規劃行動會議與策略方針。", example: "針對校慶各項活動的分工，班會上進行了熱烈的（行議）。", blankSentence: "學生會召開（　　），共同商討畢業旅行的籌劃方案。" },
+            { id: 628, lesson: 6, word: "相緩", pinyin: "ㄒㄧㄤ ㄏㄨㄢˇ", hint: "十字路口兩台車互相踩剎車禮讓，放慢車速避免擦撞", keyChar: "緩 (放緩緩衝)", meaning: "相互緩衝、彼此協調步調。", example: "快節奏的生活中，偶爾需要透過音樂閱讀來（相緩）壓力。", blankSentence: "兩車道交會處大家禮讓（　　）行，車流頓時順暢許多。" },
+            { id: 629, lesson: 6, word: "渠料", pinyin: "ㄑㄩˊ ㄌㄧㄠˋ", hint: "卡車載來一車車堅固的水泥石磚，準備築起灌溉農田的大水溝", keyChar: "料 (築水材料)", meaning: "建造疏通水渠溝渠之材料工程。", example: "水利局運來了大批（渠料），準備修築農田灌溉渠道。", blankSentence: "水利工程團隊選用堅固耐磨的（　　），強化防洪堤防。" },
+            { id: 630, lesson: 6, word: "眼蟹", pinyin: "ㄧㄢˇ ㄒㄧㄝˋ", hint: "紅樹林泥灘地上一隻隻高高豎起兩顆圓黑眼睛、揮舞大螯的招潮蟹", keyChar: "蟹 (招潮泥蟹)", meaning: "生長在海岸濕地、眼睛高聳靈巧的招潮蟹。", example: "退潮後的紅樹林泥灘地上，爬滿了靈活敏捷的（眼蟹）。", blankSentence: "小朋友蹲在泥灘邊，仔細觀察招潮（　　）揮動大螯的模樣。" },
+            { id: 631, lesson: 6, word: "縱盤", pinyin: "ㄗㄨㄥ ㄆㄢˊ", hint: "古老大榕樹底下，像八爪章魚一樣在地上縱橫盤繞的粗壯樹根", keyChar: "盤 (交錯盤繞)", meaning: "縱橫盤錯、棋盤般交織密布。", example: "現代都市的地下管線（縱盤）複雜，維護相當講究專業。", blankSentence: "老榕樹在地面上露出（　　）交錯的氣根，氣勢磅礴。" },
+            { id: 632, lesson: 6, word: "阻陸", pinyin: "ㄗㄨˇ ㄌㄨˋ", hint: "大土石流把唯一聯外的大柏油路擋得死死的，車輛過不去", keyChar: "阻 (通道阻斷)", meaning: "阻隔陸地或陸路通道受阻。", example: "山崩導致唯一的聯外道路（阻陸）中斷，工程人員正全力搶修。", blankSentence: "暴風雨引發土石流造成山區（　　），警消人員緊急開闢便道。" }
+        ];
+
+        /* -------------------------------------------------------------
+           2. 核心全域變數與音效控制器
+           ------------------------------------------------------------- */
+        let currentLessonFilter = 'all';
+        let activeVocabs = [...VOCAB_DATABASE];
+        let totalStars = parseInt(localStorage.getItem('vocab_stars') || '0');
+        let soundEnabled = true;
+
+        let audioCtx = null;
+
+        // 確保 iOS Safari 支援使用者手勢啟動 AudioContext
+        function getAudioContext() {
+            if (!audioCtx) {
+                const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+                if (AudioContextClass) {
+                    audioCtx = new AudioContextClass();
+                }
+            }
+            if (audioCtx && audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            return audioCtx;
+        }
+
+        function playTone(freq, type = 'sine', duration = 0.15) {
+            if (!soundEnabled) return;
+            try {
+                const ctx = getAudioContext();
+                if (!ctx) return;
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, ctx.currentTime);
+                gain.gain.setValueAtTime(0.15, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start();
+                osc.stop(ctx.currentTime + duration);
+            } catch(e) {}
+        }
+
+        function playSuccessSound() {
+            playTone(523.25, 'triangle', 0.1);
+            setTimeout(() => playTone(659.25, 'triangle', 0.1), 100);
+            setTimeout(() => playTone(783.99, 'triangle', 0.2), 200);
+        }
+
+        function playFailSound() {
+            playTone(300, 'sawtooth', 0.15);
+            setTimeout(() => playTone(220, 'sawtooth', 0.25), 150);
+        }
+
+        function addStars(num) {
+            totalStars += num;
+            localStorage.setItem('vocab_stars', totalStars);
+            document.getElementById('star-count').innerText = totalStars;
+        }
+
+        function toggleAudio() {
+            soundEnabled = !soundEnabled;
+            const btn = document.getElementById('audio-btn');
+            btn.innerHTML = soundEnabled ? '<i class="fa-solid fa-volume-high"></i>' : '<i class="fa-solid fa-volume-xmark text-slate-400"></i>';
+            if (soundEnabled) getAudioContext();
+        }
+
+        function speakText(text) {
+            if (!('speechSynthesis' in window)) return;
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'zh-TW';
+            utterance.rate = 0.85;
+            window.speechSynthesis.speak(utterance);
+        }
+
+        /* -------------------------------------------------------------
+           3. 模式切換與 6 課篩選器
+           ------------------------------------------------------------- */
+        function switchMode(modeName) {
+            document.getElementById('view-home').classList.add('hidden');
+            document.getElementById('view-flashcard').classList.add('hidden');
+            document.getElementById('view-quiz').classList.add('hidden');
+            document.getElementById('view-match').classList.add('hidden');
+
+            if (modeName === 'home') {
+                document.getElementById('view-home').classList.remove('hidden');
+            } else if (modeName === 'flashcard') {
+                document.getElementById('view-flashcard').classList.remove('hidden');
+            } else if (modeName === 'quiz') {
+                document.getElementById('view-quiz').classList.remove('hidden');
+            } else if (modeName === 'match') {
+                document.getElementById('view-match').classList.remove('hidden');
+            }
+        }
+
+        function filterLesson(lesson, btn) {
+            currentLessonFilter = lesson;
+            document.querySelectorAll('.lesson-btn').forEach(b => {
+                b.className = 'lesson-btn px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200';
+            });
+            btn.className = 'lesson-btn px-3 py-1.5 rounded-xl text-xs font-bold bg-indigo-600 text-white shadow-sm';
+
+            if (lesson === 'all') {
+                activeVocabs = [...VOCAB_DATABASE];
+            } else {
+                activeVocabs = VOCAB_DATABASE.filter(item => item.lesson === Number(lesson));
+            }
+            playTone(480, 'sine', 0.05);
+        }
+
+        function searchVocab(keyword) {
+            keyword = keyword.trim();
+            if (!keyword) {
+                if (currentLessonFilter === 'all') {
+                    activeVocabs = [...VOCAB_DATABASE];
+                } else {
+                    activeVocabs = VOCAB_DATABASE.filter(item => item.lesson === Number(currentLessonFilter));
+                }
+                return;
+            }
+            activeVocabs = VOCAB_DATABASE.filter(item => 
+                item.word.includes(keyword) || 
+                item.meaning.includes(keyword)
+            );
+        }
+
+        /* -------------------------------------------------------------
+           4. 模式一：3D 閃卡速記邏輯
+           ------------------------------------------------------------- */
+        let currentCardIdx = 0;
+        let isCardFlipped = false;
+
+        function startFlashcards() {
+            if (activeVocabs.length === 0) activeVocabs = [...VOCAB_DATABASE];
+            currentCardIdx = 0;
+            switchMode('flashcard');
+            renderFlashcard();
+        }
+
+        function renderFlashcard() {
+            const data = activeVocabs[currentCardIdx];
+            document.getElementById('card-index').innerText = currentCardIdx + 1;
+            document.getElementById('card-total').innerText = activeVocabs.length;
+            
+            // 正面 (更新注音、專屬記憶聯想)
+            document.getElementById('card-cat-badge').innerText = `第 ${data.lesson} 課精選`;
+            document.getElementById('card-word').innerText = data.word;
+            document.getElementById('card-pinyin').innerText = data.pinyin;
+            document.getElementById('card-memory-hint').innerText = data.hint || "生活實用意義拆解";
+            
+            // 背面 (更新詞義、例句與專屬重點字拆解)
+            document.getElementById('card-back-word').innerText = data.word;
+            document.getElementById('card-meaning').innerText = data.meaning;
+            document.getElementById('card-sentence').innerText = data.example;
+            document.getElementById('card-key-char').innerText = data.keyChar || data.word[0];
+
+            const inner = document.getElementById('flashcard-inner');
+            inner.classList.remove('rotate-y-180');
+            isCardFlipped = false;
+        }
+
+        function flipCard() {
+            const inner = document.getElementById('flashcard-inner');
+            isCardFlipped = !isCardFlipped;
+            if (isCardFlipped) {
+                inner.classList.add('rotate-y-180');
+                playTone(440, 'sine', 0.08);
+            } else {
+                inner.classList.remove('rotate-y-180');
+                playTone(380, 'sine', 0.08);
+            }
+        }
+
+        function nextCard() {
+            currentCardIdx = (currentCardIdx + 1) % activeVocabs.length;
+            renderFlashcard();
+        }
+
+        function prevCard() {
+            currentCardIdx = (currentCardIdx - 1 + activeVocabs.length) % activeVocabs.length;
+            renderFlashcard();
+        }
+
+        function markCardMastered() {
+            playSuccessSound();
+            addStars(1);
+            confetti({
+                particleCount: 25,
+                spread: 40,
+                origin: { y: 0.7 }
+            });
+            nextCard();
+        }
+
+        function speakCurrentWord() {
+            const data = activeVocabs[currentCardIdx];
+            speakText(data.word);
+        }
+
+        /* -------------------------------------------------------------
+           5. 模式二：語境挖空闖關測驗邏輯
+           ------------------------------------------------------------- */
+        let quizPool = [];
+        let quizIdx = 0;
+        let quizStreak = 0;
+        let answered = false;
+
+        function startQuiz() {
+            if (activeVocabs.length === 0) activeVocabs = [...VOCAB_DATABASE];
+            quizStreak = 0;
+            quizIdx = 0;
+            document.getElementById('quiz-streak').innerText = quizStreak;
+            
+            const poolSize = Math.min(10, activeVocabs.length);
+            quizPool = [...activeVocabs].sort(() => 0.5 - Math.random()).slice(0, poolSize);
+            switchMode('quiz');
+            loadQuizQuestion();
+        }
+
+        function loadQuizQuestion() {
+            answered = false;
+            document.getElementById('quiz-curr-num').innerText = quizIdx + 1;
+            document.getElementById('quiz-progress-bar').style.width = `${((quizIdx + 1) / quizPool.length) * 100}%`;
+            document.getElementById('quiz-feedback').classList.add('hidden');
+
+            const current = quizPool[quizIdx];
+            document.getElementById('quiz-question-text').innerText = current.blankSentence;
+
+            const distractors = VOCAB_DATABASE
+                .filter(item => item.id !== current.id)
+                .sort(() => 0.5 - Math.random())
+                .slice(0, 3)
+                .map(item => item.word);
+
+            const options = [current.word, ...distractors].sort(() => 0.5 - Math.random());
+
+            const container = document.getElementById('quiz-options-grid');
+            container.innerHTML = '';
+
+            options.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = "py-4 px-4 bg-slate-50 hover:bg-sky-50 border-2 border-slate-200 hover:border-sky-400 rounded-2xl text-slate-800 font-black text-lg transition-all btn-bounce shadow-sm flex items-center justify-between";
+                btn.innerHTML = `<span>${opt}</span><i class="fa-regular fa-circle text-slate-300"></i>`;
+                btn.onclick = () => selectQuizOption(btn, opt, current);
+                container.appendChild(btn);
+            });
+        }
+
+        function selectQuizOption(btnElement, selectedWord, currentItem) {
+            if (answered) return;
+            answered = true;
+
+            const allButtons = document.getElementById('quiz-options-grid').children;
+            const feedbackBox = document.getElementById('quiz-feedback');
+            const feedbackIcon = document.getElementById('quiz-feedback-icon');
+            const feedbackTitle = document.getElementById('quiz-feedback-title');
+            const feedbackDesc = document.getElementById('quiz-feedback-desc');
+
+            feedbackBox.classList.remove('hidden');
+
+            if (selectedWord === currentItem.word) {
+                playSuccessSound();
+                quizStreak++;
+                addStars(2);
+                document.getElementById('quiz-streak').innerText = quizStreak;
+
+                btnElement.className = "py-4 px-4 bg-emerald-500 border-2 border-emerald-600 rounded-2xl text-white font-black text-lg shadow-md flex items-center justify-between";
+                btnElement.innerHTML = `<span>${selectedWord}</span><i class="fa-solid fa-circle-check text-white"></i>`;
+
+                feedbackBox.className = "mt-5 p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800";
+                feedbackIcon.className = "fa-solid fa-circle-check text-2xl text-emerald-600 mr-3 mt-0.5";
+                feedbackTitle.innerText = "太厲害了！完全答對！ (+2 ⭐)";
+                feedbackDesc.innerText = `💡 詞義拆解：${currentItem.meaning}`;
+
+                confetti({
+                    particleCount: 40,
+                    spread: 60,
+                    origin: { y: 0.6 }
+                });
+            } else {
+                playFailSound();
+                quizStreak = 0;
+                document.getElementById('quiz-streak').innerText = quizStreak;
+
+                btnElement.className = "py-4 px-4 bg-rose-500 border-2 border-rose-600 rounded-2xl text-white font-black text-lg shadow-md flex items-center justify-between";
+                btnElement.innerHTML = `<span>${selectedWord}</span><i class="fa-solid fa-circle-xmark text-white"></i>`;
+
+                for (let b of allButtons) {
+                    if (b.innerText.trim() === currentItem.word) {
+                        b.className = "py-4 px-4 bg-emerald-100 border-2 border-emerald-500 rounded-2xl text-emerald-800 font-black text-lg flex items-center justify-between";
+                    }
+                }
+
+                feedbackBox.className = "mt-5 p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800";
+                feedbackIcon.className = "fa-solid fa-circle-question text-2xl text-rose-500 mr-3 mt-0.5";
+                feedbackTitle.innerText = `差一點點！正確答案是「${currentItem.word}」`;
+                feedbackDesc.innerText = `💡 記住用法：${currentItem.meaning}`;
+            }
+        }
+
+        function nextQuizQuestion() {
+            quizIdx++;
+            if (quizIdx >= quizPool.length) {
+                document.getElementById('modal-earned-stars').innerText = `+${quizPool.length * 2} ⭐`;
+                document.getElementById('result-modal').classList.remove('hidden');
+                confetti({ particleCount: 100, spread: 80 });
+            } else {
+                loadQuizQuestion();
+            }
+        }
+
+        /* -------------------------------------------------------------
+           6. 模式三：詞義消消樂
+           ------------------------------------------------------------- */
+        let matchSelectedWord = null;
+        let matchSelectedDef = null;
+        let matchPairsCount = 0;
+        let currentMatchSet = [];
+        let isMatchingLocked = false;
+
+        function startMatchGame() {
+            if (activeVocabs.length === 0) activeVocabs = [...VOCAB_DATABASE];
+            matchPairsCount = 0;
+            isMatchingLocked = false;
+            document.getElementById('match-score').innerText = matchPairsCount;
+            switchMode('match');
+            setupMatchBoard();
+        }
+
+        function resetMatchGame() {
+            startMatchGame();
+        }
+
+        function setupMatchBoard() {
+            matchSelectedWord = null;
+            matchSelectedDef = null;
+            matchPairsCount = 0;
+            isMatchingLocked = false;
+            document.getElementById('match-score').innerText = "0";
+
+            currentMatchSet = [...activeVocabs].sort(() => 0.5 - Math.random()).slice(0, 5);
+
+            const wordsList = [...currentMatchSet].sort(() => 0.5 - Math.random());
+            const defsList = [...currentMatchSet].sort(() => 0.5 - Math.random());
+
+            const wordsCol = document.getElementById('match-words-col');
+            const defsCol = document.getElementById('match-defs-col');
+
+            wordsCol.innerHTML = '';
+            defsCol.innerHTML = '';
+
+            wordsList.forEach(item => {
+                const card = document.createElement('div');
+                card.className = "p-4 bg-white border-2 border-indigo-200 rounded-2xl shadow-sm text-center font-black text-slate-800 text-lg cursor-pointer transition-all btn-bounce hover:border-indigo-400";
+                card.innerText = item.word;
+                card.dataset.id = item.id;
+                card.onclick = () => selectMatchWord(card, item.id);
+                wordsCol.appendChild(card);
+            });
+
+            defsList.forEach(item => {
+                const card = document.createElement('div');
+                card.className = "p-3.5 bg-white border-2 border-amber-200 rounded-2xl shadow-sm font-bold text-slate-700 text-xs sm:text-sm leading-snug cursor-pointer transition-all btn-bounce hover:border-amber-400";
+                card.innerText = item.meaning;
+                card.dataset.id = item.id;
+                card.onclick = () => selectMatchDef(card, item.id);
+                defsCol.appendChild(card);
+            });
+        }
+
+        function selectMatchWord(el, id) {
+            if (isMatchingLocked || el.classList.contains('match-correct')) return;
+            playTone(400, 'sine', 0.05);
+            document.querySelectorAll('#match-words-col > div').forEach(d => d.classList.remove('match-selected'));
+            el.classList.add('match-selected');
+            matchSelectedWord = { el, id };
+            checkMatchPair();
+        }
+
+        function selectMatchDef(el, id) {
+            if (isMatchingLocked || el.classList.contains('match-correct')) return;
+            playTone(450, 'sine', 0.05);
+            document.querySelectorAll('#match-defs-col > div').forEach(d => d.classList.remove('match-selected'));
+            el.classList.add('match-selected');
+            matchSelectedDef = { el, id };
+            checkMatchPair();
+        }
+
+        function checkMatchPair() {
+            if (matchSelectedWord && matchSelectedDef && !isMatchingLocked) {
+                if (matchSelectedWord.id === matchSelectedDef.id) {
+                    playSuccessSound();
+                    addStars(2);
+                    matchPairsCount++;
+                    document.getElementById('match-score').innerText = matchPairsCount;
+
+                    matchSelectedWord.el.classList.add('match-correct');
+                    matchSelectedDef.el.classList.add('match-correct');
+
+                    matchSelectedWord = null;
+                    matchSelectedDef = null;
+
+                    if (matchPairsCount === 5) {
+                        setTimeout(() => {
+                            confetti({ particleCount: 80, spread: 70 });
+                            document.getElementById('modal-earned-stars').innerText = "+10 ⭐";
+                            document.getElementById('result-modal').classList.remove('hidden');
+                        }, 500);
+                    }
+                } else {
+                    isMatchingLocked = true;
+                    playFailSound();
+                    const wEl = matchSelectedWord.el;
+                    const dEl = matchSelectedDef.el;
+                    
+                    setTimeout(() => {
+                        wEl.classList.remove('match-selected');
+                        dEl.classList.remove('match-selected');
+                        matchSelectedWord = null;
+                        matchSelectedDef = null;
+                        isMatchingLocked = false;
+                    }, 400);
+                }
+            }
+        }
+
+        function playAgain() {
+            document.getElementById('result-modal').classList.add('hidden');
+            startQuiz();
+        }
+
+        window.onload = function() {
+            document.getElementById('star-count').innerText = totalStars;
+        };
+    </script>
+</body>
+</html>
