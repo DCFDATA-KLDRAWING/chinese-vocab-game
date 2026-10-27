@@ -681,6 +681,35 @@
         ];
 
         /* -------------------------------------------------------------
+           1.1 108 課綱發音自動校正字典 (教育部審定音保護層)
+           說明：卡片畫面維持正確繁體漢字；僅在送交 TTS 語音發聲時將多音字/易讀錯字
+           替換為同音同調字，強制語音引擎精準發出 108 課綱教育部標準審定音。
+           ------------------------------------------------------------- */
+        const MOE_108_PHONETIC_FIXES = {
+            "口碑載道": "口碑在道",         // 載：108課綱審定讀四聲 ㄗㄞˋ (充滿)，防 TTS 誤讀三聲 ㄗㄞˇ
+            "繁殖後代": "繁值後代",         // 殖：108課綱審定讀二聲 ㄓˊ，防 TTS 誤讀四聲 ㄓˋ
+            "繁殖": "繁值",
+            "殖民地": "值民地",             // 殖：審定二聲 ㄓˊ
+            "自慚形穢": "自慚形會",         // 穢：審定四聲 ㄏㄨㄟˋ
+            "錙銖必較": "茲朱必較",         // 錙：ㄗ(一聲)，銖：ㄓㄨ(一聲)
+            "暈眩": "暈炫",                 // 暈：頭昏審定一聲 ㄩㄣ
+            "一決雌雄": "一決詞雄",         // 雌：審定一聲 ㄘ
+            "臨深履薄": "臨深旅博",         // 履：審定三聲 ㄌㄩˇ，薄：審定二聲 ㄅㄛˊ
+            "身世顯赫": "身世顯賀",         // 赫：審定四聲 ㄏㄜˋ
+            "疲於奔命": "疲於奔命",         // 奔：奔波審定一聲 ㄅㄣ
+            "得不償失": "得不常失"          // 償：審定二聲 ㄔㄤˊ
+        };
+
+        function getMoe108PhoneticText(rawText) {
+            if (!rawText) return "";
+            let corrected = rawText;
+            for (const [standardTerm, speechEquivalent] of Object.entries(MOE_108_PHONETIC_FIXES)) {
+                corrected = corrected.replaceAll(standardTerm, speechEquivalent);
+            }
+            return corrected;
+        }
+
+        /* -------------------------------------------------------------
            2. 核心全域變數與音效控制器
            ------------------------------------------------------------- */
         let currentLessonFilter = 'all';
@@ -788,8 +817,10 @@
             const data = activeVocabs[currentCardIdx];
             if (!data) return;
 
-            // 組合生動朗讀文字
-            const speechText = `${data.word}。白話意思：${data.meaning}。生活造句：${data.example}`;
+            // 組合朗讀文字（已去除注音拼讀，直接流暢銜接）
+            const originalSpeechText = `${data.word}。白話意思：${data.meaning}。生活造句：${data.example}`;
+            // 經過 108 課綱正音替換處理，確保發音無誤
+            const speechText = getMoe108PhoneticText(originalSpeechText);
 
             const utterance = new SpeechSynthesisUtterance(speechText);
             utterance.lang = 'zh-TW';
@@ -1121,7 +1152,9 @@
 
         function speakCurrentWord() {
             const data = activeVocabs[currentCardIdx];
-            speakText(data.word);
+            if (!data) return;
+            const textToSpeak = getMoe108PhoneticText(data.word);
+            speakText(textToSpeak);
         }
 
         /* -------------------------------------------------------------
