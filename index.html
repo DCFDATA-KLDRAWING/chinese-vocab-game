@@ -175,15 +175,35 @@
         <!-- 2. 模式一：3D 閃卡速記視圖 -->
         <div id="view-flashcard" class="w-full hidden flex-col items-center">
             <div class="w-full max-w-lg flex items-center justify-between mb-4">
-                <button onclick="switchMode('home')" class="px-3.5 py-1.5 rounded-xl bg-white border border-slate-200 text-slate-600 text-sm font-bold shadow-sm btn-bounce">
+                <button onclick="stopAutoPlay(); switchMode('home')" class="px-3.5 py-1.5 rounded-xl bg-white border border-slate-200 text-slate-600 text-sm font-bold shadow-sm btn-bounce">
                     <i class="fa-solid fa-arrow-left mr-1"></i>返回選單
                 </button>
                 <div class="text-sm font-bold text-slate-500">
                     第 <span id="card-index" class="text-indigo-600 font-black text-lg">1</span> / <span id="card-total">20</span> 詞
                 </div>
-                <button onclick="speakCurrentWord()" class="px-3 py-1.5 rounded-xl bg-sky-100 text-sky-700 font-bold text-xs shadow-sm flex items-center btn-bounce">
-                    <i class="fa-solid fa-volume-high mr-1.5"></i>發音
+                <!-- 朗讀目前詞彙完整解說 -->
+                <button onclick="speakCurrentFullExplanation()" class="px-3 py-1.5 rounded-xl bg-sky-100 hover:bg-sky-200 text-sky-700 font-bold text-xs shadow-sm flex items-center btn-bounce">
+                    <i class="fa-solid fa-volume-high mr-1.5"></i>解說語音
                 </button>
+            </div>
+
+            <!-- 自動連續播放控制面板 (iPad 聽讀神器) -->
+            <div class="w-full max-w-lg bg-indigo-50/90 border border-indigo-200 rounded-2xl p-3 mb-4 shadow-sm flex items-center justify-between">
+                <div class="flex items-center space-x-2">
+                    <button id="btn-autoplay" onclick="toggleAutoPlay()" class="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs shadow flex items-center btn-bounce">
+                        <i id="autoplay-icon" class="fa-solid fa-play mr-1.5"></i>
+                        <span id="autoplay-text">連續自動朗讀</span>
+                    </button>
+                    <span id="autoplay-status" class="text-[11px] font-bold text-indigo-700 hidden">
+                        <i class="fa-solid fa-circle-notch fa-spin mr-1"></i>導讀中...
+                    </span>
+                </div>
+                <div class="flex items-center space-x-2 text-xs font-bold text-slate-600">
+                    <label class="flex items-center cursor-pointer select-none">
+                        <input type="checkbox" id="autoplay-loop-check" checked class="w-4 h-4 text-indigo-600 rounded mr-1.5 focus:ring-indigo-400">
+                        <span>循環重播</span>
+                    </label>
+                </div>
             </div>
 
             <!-- 卡片容器 (iPad 觸控翻面) -->
@@ -255,6 +275,17 @@
                 <button onclick="nextCard()" class="w-14 h-14 rounded-2xl bg-white text-slate-700 border-2 border-slate-200 shadow-md flex items-center justify-center text-xl btn-bounce active:bg-slate-100">
                     <i class="fa-solid fa-chevron-right"></i>
                 </button>
+            </div>
+
+            <!-- 快速跳選詞彙抽屜/清單 (方便從指定詞開始向下播放) -->
+            <div class="w-full max-w-lg mt-6 bg-white/80 backdrop-blur rounded-2xl border border-slate-200 p-3 shadow-sm">
+                <div class="flex items-center justify-between mb-2 px-1">
+                    <span class="text-xs font-black text-slate-600"><i class="fa-solid fa-list-ol mr-1.5 text-indigo-500"></i>直接跳選詞彙 (從此詞開始向下播)：</span>
+                    <span class="text-[11px] text-slate-400 font-bold" id="quick-pick-count">共 32 詞</span>
+                </div>
+                <div id="quick-jump-list" class="flex gap-2 overflow-x-auto py-1 px-1 scrollbar-thin">
+                    <!-- JS 動態插入跳轉膠囊 -->
+                </div>
             </div>
         </div>
 
@@ -668,9 +699,187 @@
         }
 
         /* -------------------------------------------------------------
+           3.1 語音解說增強與連續自動朗讀巡航器 (含 iOS Safari 防中斷修復)
+           ------------------------------------------------------------- */
+        let isAutoPlaying = false;
+        let autoPlayTimer = null;
+        let speechKeepAliveTimer = null;
+
+        // iOS Safari SpeechSynthesis 容易在播放超過14秒時停止，加入防休眠保持心跳
+        function startSpeechKeepAlive() {
+            clearInterval(speechKeepAliveTimer);
+            speechKeepAliveTimer = setInterval(() => {
+                if (!window.speechSynthesis) return;
+                if (window.speechSynthesis.speaking) {
+                    window.speechSynthesis.pause();
+                    window.speechSynthesis.resume();
+                } else {
+                    clearInterval(speechKeepAliveTimer);
+                }
+            }, 10000);
+        }
+
+        // 單詞完整語音解說（詞名 -> 意思解密 -> 例句）
+        function speakCurrentFullExplanation(callback = null) {
+            if (!('speechSynthesis' in window)) {
+                if (callback) callback();
+                return;
+            }
+            window.speechSynthesis.cancel();
+
+            const data = activeVocabs[currentCardIdx];
+            if (!data) return;
+
+            // 組合生動朗讀文字
+            const speechText = `${data.word}。注音，${data.pinyin}。白話意思：${data.meaning}。生活造句：${data.example}`;
+
+            const utterance = new SpeechSynthesisUtterance(speechText);
+            utterance.lang = 'zh-TW';
+            utterance.rate = 0.9;
+            utterance.pitch = 1.0;
+
+            startSpeechKeepAlive();
+
+            utterance.onend = () => {
+                clearInterval(speechKeepAliveTimer);
+                if (callback) callback();
+            };
+
+            utterance.onerror = () => {
+                clearInterval(speechKeepAliveTimer);
+                if (callback) callback();
+            };
+
+            window.speechSynthesis.speak(utterance);
+        }
+
+        // 開始 / 停止連續播放切換
+        function toggleAutoPlay() {
+            if (isAutoPlaying) {
+                stopAutoPlay();
+            } else {
+                startAutoPlay();
+            }
+        }
+
+        function startAutoPlay() {
+            if (activeVocabs.length === 0) return;
+            isAutoPlaying = true;
+            updateAutoPlayUI(true);
+            runAutoPlayStep();
+        }
+
+        function stopAutoPlay() {
+            isAutoPlaying = false;
+            clearTimeout(autoPlayTimer);
+            clearInterval(speechKeepAliveTimer);
+            if (window.speechSynthesis) {
+                window.speechSynthesis.cancel();
+            }
+            updateAutoPlayUI(false);
+        }
+
+        function updateAutoPlayUI(playing) {
+            const btn = document.getElementById('btn-autoplay');
+            const icon = document.getElementById('autoplay-icon');
+            const text = document.getElementById('autoplay-text');
+            const status = document.getElementById('autoplay-status');
+
+            if (playing) {
+                btn.className = "px-3.5 py-1.5 rounded-xl bg-rose-500 hover:bg-rose-600 text-white font-black text-xs shadow flex items-center btn-bounce";
+                icon.className = "fa-solid fa-pause mr-1.5";
+                text.innerText = "暫停朗讀";
+                status.classList.remove('hidden');
+            } else {
+                btn.className = "px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs shadow flex items-center btn-bounce";
+                icon.className = "fa-solid fa-play mr-1.5";
+                text.innerText = "連續自動朗讀";
+                status.classList.add('hidden');
+            }
+        }
+
+        function runAutoPlayStep() {
+            if (!isAutoPlaying) return;
+
+            // 確保渲染當前卡片並自動翻到背面讓小朋友看解說與例句
+            renderFlashcard();
+            const inner = document.getElementById('flashcard-inner');
+            inner.classList.add('rotate-y-180');
+            isCardFlipped = true;
+
+            // 執行完整解說語音
+            speakCurrentFullExplanation(() => {
+                if (!isAutoPlaying) return;
+
+                const isLoopChecked = document.getElementById('autoplay-loop-check').checked;
+                const nextIdx = currentCardIdx + 1;
+
+                if (nextIdx < activeVocabs.length) {
+                    // 停留 1.5 秒讓小朋友消化吸收，再進入下一詞
+                    autoPlayTimer = setTimeout(() => {
+                        currentCardIdx = nextIdx;
+                        runAutoPlayStep();
+                    }, 1500);
+                } else if (isLoopChecked) {
+                    // 播到最後一個詞，自動回到開頭循環
+                    autoPlayTimer = setTimeout(() => {
+                        currentCardIdx = 0;
+                        playTone(523.25, 'triangle', 0.15);
+                        runAutoPlayStep();
+                    }, 2000);
+                } else {
+                    // 不循環則播放結束
+                    stopAutoPlay();
+                    playSuccessSound();
+                }
+            });
+        }
+
+        // 跳轉到指定詞彙並準備連續播放
+        function jumpToCard(index) {
+            if (index < 0 || index >= activeVocabs.length) return;
+            currentCardIdx = index;
+            renderFlashcard();
+            if (isAutoPlaying) {
+                clearTimeout(autoPlayTimer);
+                runAutoPlayStep();
+            } else {
+                speakCurrentFullExplanation();
+            }
+        }
+
+        // 渲染底部的橫向快速跳轉清單
+        function renderQuickJumpList() {
+            const listContainer = document.getElementById('quick-jump-list');
+            if (!listContainer) return;
+            listContainer.innerHTML = '';
+            document.getElementById('quick-pick-count').innerText = `共 ${activeVocabs.length} 詞`;
+
+            activeVocabs.forEach((item, idx) => {
+                const badge = document.createElement('button');
+                const isCurrent = idx === currentCardIdx;
+                badge.className = `whitespace-nowrap px-3 py-1.5 rounded-xl text-xs font-bold transition-all btn-bounce ${
+                    isCurrent 
+                    ? 'bg-indigo-600 text-white shadow-sm ring-2 ring-indigo-300' 
+                    : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200'
+                }`;
+                badge.innerText = `${idx + 1}. ${item.word}`;
+                badge.onclick = () => jumpToCard(idx);
+                listContainer.appendChild(badge);
+            });
+
+            // 自動橫向滾動以突顯目前詞彙
+            const activeBadge = listContainer.children[currentCardIdx];
+            if (activeBadge) {
+                activeBadge.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+            }
+        }
+
+        /* -------------------------------------------------------------
            3. 模式切換與 6 課篩選器
            ------------------------------------------------------------- */
         function switchMode(modeName) {
+            stopAutoPlay();
             document.getElementById('view-home').classList.add('hidden');
             document.getElementById('view-flashcard').classList.add('hidden');
             document.getElementById('view-quiz').classList.add('hidden');
@@ -688,6 +897,7 @@
         }
 
         function filterLesson(lesson, btn) {
+            stopAutoPlay();
             currentLessonFilter = lesson;
             document.querySelectorAll('.lesson-btn').forEach(b => {
                 b.className = 'lesson-btn px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200';
@@ -699,10 +909,13 @@
             } else {
                 activeVocabs = VOCAB_DATABASE.filter(item => item.lesson === Number(lesson));
             }
+            currentCardIdx = 0;
+            renderQuickJumpList();
             playTone(480, 'sine', 0.05);
         }
 
         function searchVocab(keyword) {
+            stopAutoPlay();
             keyword = keyword.trim();
             if (!keyword) {
                 if (currentLessonFilter === 'all') {
@@ -710,12 +923,14 @@
                 } else {
                     activeVocabs = VOCAB_DATABASE.filter(item => item.lesson === Number(currentLessonFilter));
                 }
-                return;
+            } else {
+                activeVocabs = VOCAB_DATABASE.filter(item => 
+                    item.word.includes(keyword) || 
+                    item.meaning.includes(keyword)
+                );
             }
-            activeVocabs = VOCAB_DATABASE.filter(item => 
-                item.word.includes(keyword) || 
-                item.meaning.includes(keyword)
-            );
+            currentCardIdx = 0;
+            renderQuickJumpList();
         }
 
         /* -------------------------------------------------------------
@@ -732,6 +947,7 @@
         }
 
         function renderFlashcard() {
+            if (currentCardIdx >= activeVocabs.length) currentCardIdx = 0;
             const data = activeVocabs[currentCardIdx];
             document.getElementById('card-index').innerText = currentCardIdx + 1;
             document.getElementById('card-total').innerText = activeVocabs.length;
@@ -751,6 +967,8 @@
             const inner = document.getElementById('flashcard-inner');
             inner.classList.remove('rotate-y-180');
             isCardFlipped = false;
+
+            renderQuickJumpList();
         }
 
         function flipCard() {
@@ -766,11 +984,13 @@
         }
 
         function nextCard() {
+            if (isAutoPlaying) stopAutoPlay();
             currentCardIdx = (currentCardIdx + 1) % activeVocabs.length;
             renderFlashcard();
         }
 
         function prevCard() {
+            if (isAutoPlaying) stopAutoPlay();
             currentCardIdx = (currentCardIdx - 1 + activeVocabs.length) % activeVocabs.length;
             renderFlashcard();
         }
