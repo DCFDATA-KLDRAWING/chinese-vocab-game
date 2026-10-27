@@ -789,7 +789,7 @@
             if (!data) return;
 
             // 組合生動朗讀文字
-            const speechText = `${data.word}。注音，${data.pinyin}。白話意思：${data.meaning}。生活造句：${data.example}`;
+            const speechText = `${data.word}。白話意思：${data.meaning}。生活造句：${data.example}`;
 
             const utterance = new SpeechSynthesisUtterance(speechText);
             utterance.lang = 'zh-TW';
